@@ -1,0 +1,26 @@
+[package]
+name = "app_789plates_server"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+tokio = { version = "1.36.0", features = ["full"] }
+tower = { version = "0.4.13", features = ["full"] }
+tower-http = { version = "0.5.2", features = ["full"] }
+axum = { version = "0.7.4", features = ["http2", "ws"] }
+axum-extra = { version = "0.9.2", features = ["typed-header"] }
+serde = { version = "1.0.197", features = ["derive"] }
+sqlx = { version = "0.7.3", features = [
+    "runtime-tokio",
+    "tls-rustls",
+    "chrono",
+    "macros",
+] }
+chrono = "0.4.34"
+uuid = { version = "1.7.0", features = ["v4"] }
+jsonwebtoken = "9.2.0"
+lettre = "0.11.4"
+rand = "0.8.5"
+blake3 = "1.5.0"
