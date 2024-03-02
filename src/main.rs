@@ -1,5 +1,5 @@
 use app_789plates_server::{
-    authentication::{Email, VerifyCode, VerifyEmailRes},
+    authentication::{Email, VerifyCode, VerifyRef},
     mailer::send_email,
 };
 use axum::{
@@ -9,7 +9,9 @@ use axum::{
     Json, Router,
 };
 use email_address::EmailAddress;
+use rand::{random, rngs::SmallRng, thread_rng, Rng, SeedableRng};
 use sqlx::PgPool;
+use uuid::Uuid;
 
 #[tokio::main]
 async fn main() {
@@ -30,25 +32,30 @@ async fn root() {}
 async fn verify_email(
     State(pool): State<PgPool>,
     Json(payload): Json<Email>,
-) -> (StatusCode, Json<Option<VerifyEmailRes>>) {
+) -> (StatusCode, Json<Option<VerifyRef>>) {
     let email = payload.email.trim().to_lowercase();
     let valid = EmailAddress::is_valid(&email);
     if !valid {
-        (StatusCode::FORBIDDEN, (Json(None)))
+        (StatusCode::BAD_REQUEST, (Json(None)))
     } else {
         let rows = sqlx::query("SELECT * FROM public.users")
             .fetch_all(&pool)
             .await;
         if let Ok(rows) = rows {
             if rows.is_empty() {
-                let sent = send_email(&email, 99, 99999);
+                let uuid = Uuid::new_v4().to_string();
+                let mut rng = SmallRng::from_rng(thread_rng()).unwrap();
+                let code = rng.gen_range(1000..999999);
+                let reference: u8 = random();
+                // write to db
+                let sent = send_email(&email, reference, code);
                 match sent {
                     Ok(_) => (
                         StatusCode::OK,
-                        (Json(Some(VerifyEmailRes {
+                        (Json(Some(VerifyRef {
                             email,
-                            uuid: String::from("94048355-895f-46e6-b5f9-56e08a35fa2a"),
-                            reference: 99,
+                            uuid,
+                            reference,
                         }))),
                     ),
                     Err(_) => (StatusCode::INTERNAL_SERVER_ERROR, (Json(None))),
