@@ -23,7 +23,7 @@ pub fn send_email(email: &str, reference: u8, code: usize) -> Result<Response, E
         .body(format!(
             "<p style=\"text-align: center\"><b>Verification code from 789plates</b></p>
     <p style=\"text-align: center\">This code will expire in {MINUTES} minutes</p>
-    <p style=\"text-align: center\">ref: {reference}</p>
+    <p style=\"text-align: center\">reference: {reference}</p>
     <p style=\"text-align: center\">Your verification code is:</p>
     <h1 style=\"text-align: center; padding: 100px\">{code}</h1>
     <p style=\"text-align: center\">please don\'t reply to this email</p>"

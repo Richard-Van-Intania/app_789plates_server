@@ -6,14 +6,14 @@ pub struct Email {
 }
 
 #[derive(Debug, Serialize)]
-pub struct VerifyRef {
+pub struct VerificationRes {
     pub uuid: String,
     pub email: String,
     pub reference: u8,
 }
 
 #[derive(Deserialize)]
-pub struct VerifyCode {
+pub struct VerificationCode {
     pub uuid: String,
     pub reference: u8,
     pub code: String,

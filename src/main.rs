@@ -1,5 +1,5 @@
 use app_789plates_server::{
-    authentication::{Email, VerifyCode, VerifyRef},
+    authentication::{Email, VerificationCode, VerificationRes},
     mailer::send_email,
 };
 use axum::{
@@ -20,8 +20,8 @@ async fn main() {
         .unwrap();
     let app = Router::new()
         .route("/", get(|| async {}))
-        .route("/verifyemail", post(verify_email))
-        .route("/verifycode", post(verify_code))
+        .route("/checkavailabilityemail", post(check_availability_email))
+        .route("/checkverificationcode", post(check_verification_code))
         .with_state(pool);
     let listener = tokio::net::TcpListener::bind("0.0.0.0:8700").await.unwrap();
     axum::serve(listener, app).await.unwrap();
@@ -29,10 +29,10 @@ async fn main() {
 
 async fn root() {}
 
-async fn verify_email(
+async fn check_availability_email(
     State(pool): State<PgPool>,
     Json(payload): Json<Email>,
-) -> (StatusCode, Json<Option<VerifyRef>>) {
+) -> (StatusCode, Json<Option<VerificationRes>>) {
     let email = payload.email.trim().to_lowercase();
     let valid = EmailAddress::is_valid(&email);
     if !valid {
@@ -45,14 +45,14 @@ async fn verify_email(
             if rows.is_empty() {
                 let uuid = Uuid::new_v4().to_string();
                 let mut rng = SmallRng::from_rng(thread_rng()).unwrap();
-                let code = rng.gen_range(1000..999999);
+                let code = rng.gen_range(999..999999);
                 let reference: u8 = random();
                 // write to db
                 let sent = send_email(&email, reference, code);
                 match sent {
                     Ok(_) => (
                         StatusCode::OK,
-                        (Json(Some(VerifyRef {
+                        (Json(Some(VerificationRes {
                             email,
                             uuid,
                             reference,
@@ -69,4 +69,8 @@ async fn verify_email(
     }
 }
 
-async fn verify_code(State(pool): State<PgPool>, Json(payload): Json<VerifyCode>) {}
+async fn check_verification_code(
+    State(pool): State<PgPool>,
+    Json(payload): Json<VerificationCode>,
+) {
+}
