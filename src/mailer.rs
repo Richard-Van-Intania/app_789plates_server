@@ -6,9 +6,9 @@ use lettre::{
 
 pub const EMAIL: &'static str = "pu.van.intania@gmail.com";
 pub const PASSWORD: &'static str = "pcma cjfo slth uhti";
-pub const MINUTES: usize = 15;
+pub const MINUTES: i64 = 10;
 
-pub fn send_email(email: &str, reference: u8, code: usize) -> Result<Response, Error> {
+pub fn send_email(email: &str, reference: i32, code: i32) -> Result<Response, Error> {
     let creds = Credentials::new(EMAIL.to_owned(), PASSWORD.to_owned());
     let mailer = SmtpTransport::relay("smtp.gmail.com")
         .unwrap()

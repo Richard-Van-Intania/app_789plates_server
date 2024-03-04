@@ -7,14 +7,14 @@ pub struct Email {
 
 #[derive(Debug, Serialize)]
 pub struct VerificationRes {
-    pub uuid: String,
+    pub verification_id: i32,
     pub email: String,
-    pub reference: u8,
+    pub reference: i32,
 }
 
 #[derive(Deserialize)]
 pub struct VerificationCode {
-    pub uuid: String,
-    pub reference: u8,
-    pub code: String,
+    pub verification_id: i32,
+    pub reference: i32,
+    pub code: i32,
 }
