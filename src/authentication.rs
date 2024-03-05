@@ -5,7 +5,7 @@ pub struct Email {
     pub email: String,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Serialize)]
 pub struct VerificationRes {
     pub verification_id: i32,
     pub email: String,
