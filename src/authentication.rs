@@ -18,3 +18,12 @@ pub struct VerificationCode {
     pub reference: i32,
     pub code: i32,
 }
+
+#[derive(Deserialize)]
+pub struct CreateNewAccount {
+    pub verification_id: i32,
+    pub reference: i32,
+    pub code: i32,
+    pub email: String,
+    pub password: String,
+}
