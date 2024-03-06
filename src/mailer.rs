@@ -21,7 +21,7 @@ pub fn send_email(email: &str, reference: i32, code: i32) -> Result<Response, Er
         .subject("Verification code from 789plates")
         .header(ContentType::TEXT_HTML)
         .body(format!(
-            "<p style=\"text-align: center\"><b>Verification code from 789plates</b></p>
+            "<p style=\"text-align: center\"><b>789plates</b></p>
     <p style=\"text-align: center\">This code will expire in {MINUTES} minutes</p>
     <p style=\"text-align: center\">reference: {reference}</p>
     <p style=\"text-align: center\">Your verification code is:</p>

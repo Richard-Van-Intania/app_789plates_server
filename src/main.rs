@@ -16,7 +16,7 @@ use sqlx::PgPool;
 
 #[tokio::main]
 async fn main() {
-    let pool = PgPool::connect("postgres://postgres:mysecretpassword@localhost:5432/app789plates")
+    let pool = PgPool::connect("postgres://postgres:postgres@localhost:5432/app789plates")
         .await
         .unwrap();
     let app = Router::new()
