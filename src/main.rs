@@ -7,7 +7,7 @@ use axum::{
     extract::State,
     http::StatusCode,
     response::IntoResponse,
-    routing::{get, post},
+    routing::{delete, get, post, put},
     Json, Router,
 };
 use axum_extra::{
@@ -31,6 +31,13 @@ async fn main() {
         .route("/checkverificationcode", post(check_verification_code))
         .route("/createnewaccount", post(create_new_account))
         .route("/signin", get(sign_in))
+        .route("/forgotpassword", post(forgot_password))
+        .route("/resetpassword", put(reset_password))
+        .route("/addsecondaryemail", post(add_secondary_email))
+        .route("/deleteaccount", delete(delete_account))
+        .route("/editname", put(edit_name))
+        .route("/editprofilepicture", put(edit_profile_picture))
+        .route("/editinformation", put(edit_information))
         .route("/search", get(search))
         .route("/debug", get(debug))
         .with_state(pool);
@@ -229,12 +236,26 @@ async fn sign_in() -> impl IntoResponse {
     // check exist
     // check password
     // return token
+    todo!()
 }
 
+// user
 async fn forgot_password() -> impl IntoResponse {}
 async fn edit_name() -> impl IntoResponse {}
 async fn reset_password() -> impl IntoResponse {}
 async fn add_secondary_email() -> impl IntoResponse {}
+async fn delete_account() -> impl IntoResponse {}
+async fn edit_profile_picture() -> impl IntoResponse {}
+async fn edit_information() -> impl IntoResponse {}
+
+//  plates
+// add edit delete transfer show hide
+
+// search search with condition
+
+// home feed fetch timeline
+
+// like plate, like profile
 
 async fn search(
     TypedHeader(Authorization(bearer)): TypedHeader<Authorization<Bearer>>,
