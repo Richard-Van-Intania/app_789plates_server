@@ -1,5 +1,6 @@
 use app_789plates_server::{
     authentication::{CreateNewAccount, Email, VerificationCode, VerificationRes},
+    jwt::{Claims, Token, ACCESS_TOKEN_KEY, ISSUER, REFRESH_TOKEN_KEY},
     mailer::{send_email, MINUTES},
 };
 use axum::{
@@ -11,6 +12,7 @@ use axum::{
 };
 use chrono::{DateTime, Duration, Utc};
 use email_address::EmailAddress;
+use jsonwebtoken::{encode, EncodingKey, Header};
 use rand::{random, rngs::SmallRng, thread_rng, Rng, SeedableRng};
 use sqlx::PgPool;
 
@@ -134,21 +136,21 @@ async fn check_verification_code(
 async fn create_new_account(
     State(pool): State<PgPool>,
     Json(payload): Json<CreateNewAccount>,
-) -> impl IntoResponse {
+) -> (StatusCode, Json<Option<Token>>) {
     let email = payload.email.trim().to_lowercase();
     let valid = EmailAddress::is_valid(&email);
     if valid {
-        let fetch = sqlx::query(
+        let fetch_email = sqlx::query(
             "SELECT users_id FROM public.users WHERE primary_email = $1 OR secondary_email = $2",
         )
         .bind(&email)
         .bind(&email)
         .fetch_all(&pool)
         .await;
-        match fetch {
+        match fetch_email {
             Ok(rows) => {
                 if rows.is_empty() {
-                    let fetch: Result<Option<(i32,)>,  sqlx::Error> = sqlx::query_as(
+                    let fetch_verified: Result<Option<(i32,)>,  sqlx::Error> = sqlx::query_as(
                         "SELECT verification_id FROM public.verification WHERE verification_id = $1 AND reference = $2 AND code = $3 AND verified = true",
                     )
                     .bind(payload.verification_id)
@@ -156,34 +158,60 @@ async fn create_new_account(
                     .bind(payload.code)
                     .fetch_optional(&pool)
                     .await;
-                    match fetch {
+                    match fetch_verified {
                         Ok(_) => {
-                            let insert = sqlx::query(
-                                "INSERT INTO public.users (name, primary_email, password, created_date) VALUES ($1, $2, $3, $4)",
+                            let date = Utc::now();
+                            let insert_user: Result<(i32,), sqlx::Error> = sqlx::query_as(
+                                "INSERT INTO public.users (name, primary_email, password, created_date) VALUES ($1, $2, $3, $4) RETURNING users_id",
                             )
                             .bind(*email.split("@").collect::<Vec<&str>>().get(0).unwrap())
                             .bind(&email)
                             .bind(blake3::hash(payload.password.as_bytes()).to_string())
-                            .bind(Utc::now())
-                            .execute(&pool)
+                            .bind(date)
+                            .fetch_one(&pool)
                             .await;
-                            match insert {
-                                Ok(_) => {
-                                    // return jwt here
-                                    StatusCode::OK
+                            match insert_user {
+                                Ok((users_id,)) => {
+                                    let access_claims = Claims {
+                                        iat: date.timestamp() as usize,
+                                        exp: (date + Duration::minutes(60)).timestamp() as usize,
+                                        iss: ISSUER.to_string(),
+                                        sub: users_id.to_string(),
+                                    };
+                                    let refresh_claims = Claims {
+                                        iat: date.timestamp() as usize,
+                                        exp: (date + Duration::days(14)).timestamp() as usize,
+                                        iss: ISSUER.to_string(),
+                                        sub: users_id.to_string(),
+                                    };
+                                    let access_token = encode(
+                                        &Header::default(),
+                                        &access_claims,
+                                        &EncodingKey::from_secret(ACCESS_TOKEN_KEY.as_ref()),
+                                    );
+                                    let refresh_token = encode(
+                                        &Header::default(),
+                                        &refresh_claims,
+                                        &EncodingKey::from_secret(REFRESH_TOKEN_KEY.as_ref()),
+                                    );
+                                    let token = Token {
+                                        access_token: access_token.unwrap(),
+                                        refresh_token: refresh_token.unwrap(),
+                                    };
+                                    (StatusCode::OK, (Json(Some(token))))
                                 }
-                                Err(_) => StatusCode::INTERNAL_SERVER_ERROR,
+                                Err(_) => (StatusCode::INTERNAL_SERVER_ERROR, (Json(None))),
                             }
                         }
-                        Err(_) => StatusCode::INTERNAL_SERVER_ERROR,
+                        Err(_) => (StatusCode::INTERNAL_SERVER_ERROR, (Json(None))),
                     }
                 } else {
-                    StatusCode::BAD_REQUEST
+                    (StatusCode::BAD_REQUEST, (Json(None)))
                 }
             }
-            Err(_) => StatusCode::INTERNAL_SERVER_ERROR,
+            Err(_) => (StatusCode::INTERNAL_SERVER_ERROR, (Json(None))),
         }
     } else {
-        StatusCode::BAD_REQUEST
+        (StatusCode::BAD_REQUEST, (Json(None)))
     }
 }
