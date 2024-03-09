@@ -42,3 +42,5 @@ pub async fn verify_signature(
         Err(_) => Err(StatusCode::UNAUTHORIZED),
     }
 }
+
+pub async fn renew_token() -> impl IntoResponse {}
