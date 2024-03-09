@@ -47,10 +47,10 @@ async fn main() {
 
 async fn root() -> impl IntoResponse {}
 
-async fn debug() -> impl IntoResponse {
+async fn debug() -> String {
     let email = String::from("lillpu@live.com");
     let text = *email.split("@").collect::<Vec<&str>>().get(0).unwrap();
-    text.to_owned()
+    text.to_string()
 }
 
 async fn check_availability_email(
