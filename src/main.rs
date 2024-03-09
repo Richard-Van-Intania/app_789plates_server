@@ -1,7 +1,7 @@
 use std::time;
 
 use app_789plates_server::{
-    authentication::{CreateNewAccount, Email, VerificationCode, VerificationRes},
+    authentication::{CreateNewAccount, Email, SignIn, VerificationCode, VerificationRes},
     graceful_shutdown::shutdown_signal,
     jwt::{verify_signature, Claims, Token, ACCESS_TOKEN_KEY, ISSUER, REFRESH_TOKEN_KEY},
     mailer::{send_email, MINUTES},
@@ -123,7 +123,7 @@ async fn check_availability_email(
 async fn check_verification_code(
     State(pool): State<PgPool>,
     Json(payload): Json<VerificationCode>,
-) -> impl IntoResponse {
+) -> StatusCode {
     let fetch_code: Result<Option<(i32,DateTime<Utc>)>,  sqlx::Error> = sqlx::query_as(
         "SELECT verification_id, expire FROM public.verification WHERE verification_id = $1 AND reference = $2 AND code = $3 AND verified = false",
     )
@@ -160,7 +160,7 @@ async fn check_verification_code(
 async fn create_new_account(
     State(pool): State<PgPool>,
     Json(payload): Json<CreateNewAccount>,
-) -> (StatusCode, Json<Option<Token>>) {
+) -> Result<Json<Token>, StatusCode> {
     let email = payload.email.trim().to_lowercase();
     let valid = EmailAddress::is_valid(&email);
     if valid {
@@ -222,30 +222,94 @@ async fn create_new_account(
                                         access_token: access_token.unwrap(),
                                         refresh_token: refresh_token.unwrap(),
                                     };
-                                    (StatusCode::OK, (Json(Some(token))))
+                                    Ok(Json(token))
                                 }
-                                Err(_) => (StatusCode::INTERNAL_SERVER_ERROR, (Json(None))),
+                                Err(_) => Err(StatusCode::INTERNAL_SERVER_ERROR),
                             }
                         }
-                        Err(_) => (StatusCode::INTERNAL_SERVER_ERROR, (Json(None))),
+                        Err(_) => Err(StatusCode::INTERNAL_SERVER_ERROR),
                     }
                 } else {
-                    (StatusCode::BAD_REQUEST, (Json(None)))
+                    Err(StatusCode::BAD_REQUEST)
                 }
             }
-            Err(_) => (StatusCode::INTERNAL_SERVER_ERROR, (Json(None))),
+            Err(_) => Err(StatusCode::INTERNAL_SERVER_ERROR),
         }
     } else {
-        (StatusCode::BAD_REQUEST, (Json(None)))
+        Err(StatusCode::BAD_REQUEST)
     }
 }
 
-async fn sign_in() -> impl IntoResponse {
-    // check email
-    // check exist
-    // check password
-    // return token
-    todo!()
+async fn sign_in(
+    State(pool): State<PgPool>,
+    Json(payload): Json<SignIn>,
+) -> Result<Json<Token>, StatusCode> {
+    let email = payload.email.trim().to_lowercase();
+    let valid = EmailAddress::is_valid(&email);
+    if valid {
+        let fetch_email: Result<Option<(i32,)>, sqlx::Error> = sqlx::query_as(
+            "SELECT users_id FROM public.users WHERE primary_email = $1 OR secondary_email = $2",
+        )
+        .bind(&email)
+        .bind(&email)
+        .fetch_optional(&pool)
+        .await;
+        if let Ok(row) = fetch_email {
+            match row {
+                Some((users_id,)) => {
+                    let sign_in: Result<Option<(i32,)>, sqlx::Error> = sqlx::query_as(
+                        "SELECT users_id FROM public.users WHERE users_id = $1 AND password = $2",
+                    )
+                    .bind(users_id)
+                    .bind(blake3::hash(payload.password.as_bytes()).to_string())
+                    .fetch_optional(&pool)
+                    .await;
+                    if let Ok(opt) = sign_in {
+                        match opt {
+                            Some((users_id,)) => {
+                                let date = Utc::now();
+                                let access_claims = Claims {
+                                    iat: date.timestamp() as usize,
+                                    exp: (date + Duration::minutes(60)).timestamp() as usize,
+                                    iss: ISSUER.to_string(),
+                                    sub: users_id.to_string(),
+                                };
+                                let refresh_claims = Claims {
+                                    iat: date.timestamp() as usize,
+                                    exp: (date + Duration::days(14)).timestamp() as usize,
+                                    iss: ISSUER.to_string(),
+                                    sub: users_id.to_string(),
+                                };
+                                let access_token = encode(
+                                    &Header::default(),
+                                    &access_claims,
+                                    &EncodingKey::from_secret(ACCESS_TOKEN_KEY.as_ref()),
+                                );
+                                let refresh_token = encode(
+                                    &Header::default(),
+                                    &refresh_claims,
+                                    &EncodingKey::from_secret(REFRESH_TOKEN_KEY.as_ref()),
+                                );
+                                let token = Token {
+                                    access_token: access_token.unwrap(),
+                                    refresh_token: refresh_token.unwrap(),
+                                };
+                                Ok(Json(token))
+                            }
+                            None => Err(StatusCode::UNAUTHORIZED),
+                        }
+                    } else {
+                        Err(StatusCode::INTERNAL_SERVER_ERROR)
+                    }
+                }
+                None => Err(StatusCode::BAD_REQUEST),
+            }
+        } else {
+            Err(StatusCode::INTERNAL_SERVER_ERROR)
+        }
+    } else {
+        Err(StatusCode::BAD_REQUEST)
+    }
 }
 
 // user
