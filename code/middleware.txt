@@ -1,0 +1,51 @@
+async fn my_middleware1(request: Request, next: Next) -> Response {
+    // do something with `request`...
+    println!("hello from my_middleware1 in at {}", Local::now());
+    sleep(time::Duration::from_secs(10)).await;
+
+    let response = next.run(request).await;
+
+    // do something with `response`...
+    println!("hello from my_middleware1 out at {}", Local::now());
+    sleep(time::Duration::from_secs(1)).await;
+
+    response
+}
+
+async fn my_middleware2(request: Request, next: Next) -> Response {
+    // do something with `request`...
+    println!("hello from my_middleware2 in at {}", Local::now());
+    sleep(time::Duration::from_secs(1)).await;
+
+    let response = next.run(request).await;
+
+    // do something with `response`...
+    println!("hello from my_middleware2  out at {}", Local::now());
+    sleep(time::Duration::from_secs(1)).await;
+
+    response
+}
+
+async fn my_middleware3(request: Request, next: Next) -> Response {
+    // do something with `request`...
+    // request turn
+
+    let response = next.run(request).await;
+
+    // do something with `response`...
+    // response turn
+
+    response
+}
+
+async fn validate_email(request: Request, next: Next) -> Response {
+    // do something with `request`...
+    // request turn
+
+    let response = next.run(request).await;
+
+    // do something with `response`...
+    // response turn
+
+    response
+}

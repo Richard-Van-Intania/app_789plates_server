@@ -1,0 +1,52 @@
+async fn root() -> impl IntoResponse {}
+
+
+
+async fn empty() -> Result<Json<VerificationRes>, StatusCode> {
+    let b = true;
+    if b {
+        Ok(Json(VerificationRes {
+            verification_id: 6,
+            email: String::from("lillpu@live.com"),
+            reference: 114,
+        }))
+    } else {
+        Err(StatusCode::BAD_REQUEST)
+    }
+}
+
+// example response type
+async fn test1() -> Result<Json<VerificationRes>, StatusCode> {
+    let b = true;
+    if b {
+        Ok(Json(VerificationRes {
+            verification_id: 6,
+            email: String::from("lillpu@live.com"),
+            reference: 114,
+        }))
+    } else {
+        Err(StatusCode::BAD_REQUEST)
+    }
+}
+
+async fn test2() -> Result<impl IntoResponse, StatusCode> {
+    Ok(String::from("ok!"))
+}
+
+async fn debug() -> String {
+    let email = String::from("lillpu@live.com");
+    let text = *email.split("@").collect::<Vec<&str>>().get(0).unwrap();
+    text.to_string()
+}
+
+
+
+
+        .route(
+            "/debug",
+            get(debug.layer(
+                ServiceBuilder::new()
+                    .layer(middleware::from_fn(my_middleware1))
+                    .layer(middleware::from_fn(my_middleware2)),
+            )),
+        )

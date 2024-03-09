@@ -2,7 +2,8 @@ use std::time;
 
 use app_789plates_server::{
     authentication::{CreateNewAccount, Email, VerificationCode, VerificationRes},
-    jwt::{Claims, Token, ACCESS_TOKEN_KEY, ISSUER, REFRESH_TOKEN_KEY},
+    graceful_shutdown::shutdown_signal,
+    jwt::{verify_signature, Claims, Token, ACCESS_TOKEN_KEY, ISSUER, REFRESH_TOKEN_KEY},
     mailer::{send_email, MINUTES},
 };
 use axum::{
@@ -34,13 +35,7 @@ async fn main() {
         .unwrap();
     let app = Router::new()
         .route("/", get(|| async {}))
-        .route(
-            "/checkavailabilityemail",
-            post(
-                check_availability_email
-                    .layer(ServiceBuilder::new().layer(middleware::from_fn(validate_email))),
-            ),
-        )
+        .route("/checkavailabilityemail", post(check_availability_email))
         .route("/checkverificationcode", post(check_verification_code))
         .route("/createnewaccount", post(create_new_account))
         .route("/signin", get(sign_in))
@@ -51,27 +46,18 @@ async fn main() {
         .route("/editname", put(edit_name))
         .route("/editprofilepicture", put(edit_profile_picture))
         .route("/editinformation", put(edit_information))
-        .route("/search", get(search))
         .route(
-            "/debug",
-            get(debug.layer(
-                ServiceBuilder::new()
-                    .layer(middleware::from_fn(my_middleware1))
-                    .layer(middleware::from_fn(my_middleware2)),
-            )),
+            "/search",
+            get(search.layer(middleware::from_fn(verify_signature))),
         )
+        .layer(TraceLayer::new_for_http())
         .layer(TimeoutLayer::new(time::Duration::from_secs(30)))
         .with_state(pool);
     let listener = tokio::net::TcpListener::bind("0.0.0.0:8700").await.unwrap();
-    axum::serve(listener, app).await.unwrap();
-}
-
-async fn root() -> impl IntoResponse {}
-
-async fn debug() -> String {
-    let email = String::from("lillpu@live.com");
-    let text = *email.split("@").collect::<Vec<&str>>().get(0).unwrap();
-    text.to_string()
+    axum::serve(listener, app)
+        .with_graceful_shutdown(shutdown_signal())
+        .await
+        .unwrap();
 }
 
 async fn check_availability_email(
@@ -268,6 +254,7 @@ async fn add_secondary_email() -> impl IntoResponse {}
 async fn delete_account() -> impl IntoResponse {}
 async fn edit_profile_picture() -> impl IntoResponse {}
 async fn edit_information() -> impl IntoResponse {}
+async fn search() -> impl IntoResponse {}
 
 //  plates
 // add edit delete transfer show hide
@@ -277,72 +264,3 @@ async fn edit_information() -> impl IntoResponse {}
 // home feed fetch timeline
 
 // like plate, like profile
-
-async fn search(
-    TypedHeader(Authorization(bearer)): TypedHeader<Authorization<Bearer>>,
-    State(pool): State<PgPool>,
-) -> impl IntoResponse {
-    // test jwt
-    let token = decode::<Claims>(
-        bearer.token(),
-        &DecodingKey::from_secret(ACCESS_TOKEN_KEY.as_ref()),
-        &Validation::default(),
-    );
-    match token {
-        Ok(_) => StatusCode::OK,
-        Err(_) => StatusCode::UNAUTHORIZED,
-    }
-}
-
-async fn my_middleware1(request: Request, next: Next) -> Response {
-    // do something with `request`...
-    println!("hello from my_middleware1 in at {}", Local::now());
-    sleep(time::Duration::from_secs(1)).await;
-
-    let response = next.run(request).await;
-
-    // do something with `response`...
-    println!("hello from my_middleware1 out at {}", Local::now());
-    sleep(time::Duration::from_secs(1)).await;
-
-    response
-}
-
-async fn my_middleware2(request: Request, next: Next) -> Response {
-    // do something with `request`...
-    println!("hello from my_middleware2 in at {}", Local::now());
-    sleep(time::Duration::from_secs(1)).await;
-
-    let response = next.run(request).await;
-
-    // do something with `response`...
-    println!("hello from my_middleware2  out at {}", Local::now());
-    sleep(time::Duration::from_secs(1)).await;
-
-    response
-}
-
-async fn my_middleware3(request: Request, next: Next) -> Response {
-    // do something with `request`...
-    // request turn
-
-    let response = next.run(request).await;
-
-    // do something with `response`...
-    // response turn
-
-    response
-}
-
-async fn validate_email(request: Request, next: Next) -> Response {
-    // do something with `request`...
-    //
-    println!("validate_email jaa in");
-
-    let response = next.run(request).await;
-
-    // do something with `response`...
-    println!("validate_email jaa out");
-
-    response
-}
