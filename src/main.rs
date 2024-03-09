@@ -67,7 +67,7 @@ async fn root() -> Result<impl IntoResponse, StatusCode> {
 async fn check_availability_email(
     State(pool): State<PgPool>,
     Json(payload): Json<Email>,
-) -> (StatusCode, Json<Option<VerificationRes>>) {
+) -> Result<Json<VerificationRes>, StatusCode> {
     let email = payload.email.trim().to_lowercase();
     let valid = EmailAddress::is_valid(&email);
     if valid {
@@ -97,28 +97,26 @@ async fn check_availability_email(
                 .await;
                 if let Ok((verification_id, reference)) = insert_code {
                     let sent = send_email(&email, reference, code);
-                    match sent {
-                        Ok(_) => (
-                            StatusCode::OK,
-                            (Json(Some(VerificationRes {
-                                verification_id,
-                                email,
-                                reference,
-                            }))),
-                        ),
-                        Err(_) => (StatusCode::INTERNAL_SERVER_ERROR, (Json(None))),
+                    if let Ok(_) = sent {
+                        Ok(Json(VerificationRes {
+                            verification_id,
+                            email,
+                            reference,
+                        }))
+                    } else {
+                        Err(StatusCode::INTERNAL_SERVER_ERROR)
                     }
                 } else {
-                    (StatusCode::INTERNAL_SERVER_ERROR, (Json(None)))
+                    Err(StatusCode::INTERNAL_SERVER_ERROR)
                 }
             } else {
-                (StatusCode::CONFLICT, (Json(None)))
+                Err(StatusCode::CONFLICT)
             }
         } else {
-            (StatusCode::INTERNAL_SERVER_ERROR, (Json(None)))
+            Err(StatusCode::INTERNAL_SERVER_ERROR)
         }
     } else {
-        (StatusCode::BAD_REQUEST, (Json(None)))
+        Err(StatusCode::BAD_REQUEST)
     }
 }
 
