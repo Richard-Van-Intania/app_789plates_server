@@ -50,3 +50,17 @@ async fn debug() -> String {
                     .layer(middleware::from_fn(my_middleware2)),
             )),
         )
+
+
+
+#[derive(Debug, FromRow)]
+struct Ticket {
+    id: i64,
+    name: String,
+}
+
+async fn test(State(pool): State<PgPool>) -> Result<impl IntoResponse, StatusCode> {
+    let select_query = sqlx::query_as::<_, Ticket>("SELECT users_id FROM public.users");
+    let ticket = select_query.fetch_all(&pool).await;
+    Ok(())
+}

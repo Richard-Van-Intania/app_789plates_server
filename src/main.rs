@@ -23,7 +23,7 @@ use chrono::{DateTime, Duration, Local, Utc};
 use email_address::EmailAddress;
 use jsonwebtoken::{decode, encode, DecodingKey, EncodingKey, Header, Validation};
 use rand::{random, rngs::SmallRng, thread_rng, Rng, SeedableRng};
-use sqlx::PgPool;
+use sqlx::{FromRow, PgPool};
 use tokio::time::sleep;
 use tower::ServiceBuilder;
 use tower_http::{timeout::TimeoutLayer, trace::TraceLayer};
@@ -58,6 +58,10 @@ async fn main() {
         .with_graceful_shutdown(shutdown_signal())
         .await
         .unwrap();
+}
+
+async fn root() -> Result<impl IntoResponse, StatusCode> {
+    Ok(())
 }
 
 async fn check_availability_email(
