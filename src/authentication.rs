@@ -33,3 +33,9 @@ pub struct SignIn {
     pub email: String,
     pub password: String,
 }
+
+#[derive(Deserialize)]
+pub struct ChangePassword {
+    pub refresh_token: String,
+    pub password: String,
+}

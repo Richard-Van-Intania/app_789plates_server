@@ -1,5 +1,7 @@
 use crate::{
-    authentication::{CreateNewAccount, Email, SignIn, VerificationCode, VerificationRes},
+    authentication::{
+        ChangePassword, CreateNewAccount, Email, SignIn, VerificationCode, VerificationRes,
+    },
     jwt::{Claims, Token, ACCESS_TOKEN_KEY, ISSUER, REFRESH_TOKEN_KEY},
     mailer::{send_email, MINUTES},
 };
@@ -379,14 +381,30 @@ pub async fn reset_password(
     }
 }
 
-pub async fn change_password(State(pool): State<PgPool>, Json(payload): Json<Token>) -> StatusCode {
+pub async fn change_password(
+    State(pool): State<PgPool>,
+    Json(payload): Json<ChangePassword>,
+) -> StatusCode {
     let token = decode::<Claims>(
         &payload.refresh_token,
         &DecodingKey::from_secret(REFRESH_TOKEN_KEY.as_ref()),
         &Validation::default(),
     );
     if let Ok(TokenData { header: _, claims }) = token {
-        StatusCode::BAD_REQUEST
+        let users_id: i32 = claims.sub.parse().unwrap();
+        let update_password = sqlx::query(
+            "UPDATE public.users
+        SET password = $1
+        WHERE users_id = $2",
+        )
+        .bind(blake3::hash(payload.password.as_bytes()).to_string())
+        .bind(users_id)
+        .execute(&pool)
+        .await;
+        match update_password {
+            Ok(_) => StatusCode::OK,
+            Err(_) => StatusCode::INTERNAL_SERVER_ERROR,
+        }
     } else {
         StatusCode::UNAUTHORIZED
     }
