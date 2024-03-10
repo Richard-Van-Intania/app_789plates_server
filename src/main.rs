@@ -46,12 +46,12 @@ async fn main() {
             // later
             delete(delete_account.layer(middleware::from_fn(verify_signature))),
         )
-        // here
         .route(
             "/editname",
             put(edit_name.layer(middleware::from_fn(verify_signature))),
         )
         .route(
+            // later
             "/editprofilepicture",
             put(edit_profile_picture.layer(middleware::from_fn(verify_signature))),
         )
@@ -59,6 +59,7 @@ async fn main() {
             "/editinformation",
             put(edit_information.layer(middleware::from_fn(verify_signature))),
         )
+        // here
         .route(
             "/search",
             get(search.layer(middleware::from_fn(verify_signature))),
