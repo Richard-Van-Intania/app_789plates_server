@@ -28,3 +28,8 @@ consuming self
 mutating &mut self, mut self
 
 todo!()
+
+UPDATE public.verification
+SET verified = true
+WHERE verification_id = 12 AND reference = 96 AND code = 663104 AND expire >= '2024-03-10 15:56:52.340805+07'
+RETURNING verified

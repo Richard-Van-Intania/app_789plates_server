@@ -6,7 +6,7 @@ use crate::{
 use axum::{extract::State, http::StatusCode, response::IntoResponse, Json};
 use chrono::{DateTime, Duration, Utc};
 use email_address::EmailAddress;
-use jsonwebtoken::{encode, EncodingKey, Header};
+use jsonwebtoken::{decode, encode, DecodingKey, EncodingKey, Header, TokenData, Validation};
 use rand::{random, rngs::SmallRng, thread_rng, Rng, SeedableRng};
 use sqlx::PgPool;
 
@@ -299,23 +299,104 @@ pub async fn forgot_password(
     }
 }
 
-pub async fn reset_password() -> Result<impl IntoResponse, StatusCode> {
-    // after forgot
-    Ok(())
-}
-
-pub async fn change_password(
+pub async fn reset_password(
     State(pool): State<PgPool>,
-    Json(payload): Json<Token>,
-) -> Result<impl IntoResponse, StatusCode> {
-    // inside login
-    // use miffleware
-    // check  refresh
-    Ok(())
+    Json(payload): Json<CreateNewAccount>,
+) -> Result<Json<Token>, StatusCode> {
+    let email = payload.email.trim().to_lowercase();
+    let valid = EmailAddress::is_valid(&email);
+    let password = payload.password;
+    if valid && !password.is_empty() {
+        let date = Utc::now();
+        let update_code: Result<Option<(bool,)>, sqlx::Error> = sqlx::query_as(
+            "UPDATE public.verification
+        SET verified = true
+        WHERE verification_id = $1 AND reference = $2 AND code = $3 AND expire > $4
+        RETURNING verified",
+        )
+        .bind(payload.verification_id)
+        .bind(payload.reference)
+        .bind(payload.code)
+        .bind(date)
+        .fetch_optional(&pool)
+        .await;
+        if let Ok(opt_verified) = update_code {
+            if let Some((verified,)) = opt_verified {
+                if verified {
+                    let update_password: Result<(i32,), sqlx::Error> = sqlx::query_as(
+                        "UPDATE public.users
+                    SET password = $1
+                    WHERE primary_email = $2 OR secondary_email = $3
+                    RETURNING users_id",
+                    )
+                    .bind(blake3::hash(password.as_bytes()).to_string())
+                    .bind(&email)
+                    .bind(&email)
+                    .fetch_one(&pool)
+                    .await;
+                    if let Ok((users_id,)) = update_password {
+                        let access_claims = Claims {
+                            iat: date.timestamp() as usize,
+                            exp: (date + Duration::minutes(60)).timestamp() as usize,
+                            iss: ISSUER.to_string(),
+                            sub: users_id.to_string(),
+                        };
+                        let refresh_claims = Claims {
+                            iat: date.timestamp() as usize,
+                            exp: (date + Duration::days(14)).timestamp() as usize,
+                            iss: ISSUER.to_string(),
+                            sub: users_id.to_string(),
+                        };
+                        let access_token = encode(
+                            &Header::default(),
+                            &access_claims,
+                            &EncodingKey::from_secret(ACCESS_TOKEN_KEY.as_ref()),
+                        );
+                        let refresh_token = encode(
+                            &Header::default(),
+                            &refresh_claims,
+                            &EncodingKey::from_secret(REFRESH_TOKEN_KEY.as_ref()),
+                        );
+                        let token = Token {
+                            access_token: access_token.unwrap(),
+                            refresh_token: refresh_token.unwrap(),
+                        };
+                        Ok(Json(token))
+                    } else {
+                        Err(StatusCode::INTERNAL_SERVER_ERROR)
+                    }
+                } else {
+                    Err(StatusCode::BAD_REQUEST)
+                }
+            } else {
+                Err(StatusCode::BAD_REQUEST)
+            }
+        } else {
+            Err(StatusCode::INTERNAL_SERVER_ERROR)
+        }
+    } else {
+        Err(StatusCode::BAD_REQUEST)
+    }
 }
 
-pub async fn add_secondary_email() -> Result<impl IntoResponse, StatusCode> {
+pub async fn change_password(State(pool): State<PgPool>, Json(payload): Json<Token>) -> StatusCode {
+    let token = decode::<Claims>(
+        &payload.refresh_token,
+        &DecodingKey::from_secret(REFRESH_TOKEN_KEY.as_ref()),
+        &Validation::default(),
+    );
+    if let Ok(TokenData { header: _, claims }) = token {
+        StatusCode::BAD_REQUEST
+    } else {
+        StatusCode::BAD_REQUEST
+    }
+}
+
+pub async fn add_secondary_email(
+    State(pool): State<PgPool>,
+    Json(payload): Json<Email>,
+) -> StatusCode {
     // inside login
     // check both access and refresh
-    Ok(())
+    StatusCode::BAD_REQUEST
 }
