@@ -461,6 +461,6 @@ pub async fn add_secondary_email(
     }
 }
 
-pub async fn delete_account() -> StatusCode {
+pub async fn delete_account(State(pool): State<PgPool>, Json(payload): Json<Token>) -> StatusCode {
     StatusCode::OK
 }

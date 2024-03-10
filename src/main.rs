@@ -37,15 +37,16 @@ async fn main() {
             "/changepassword",
             put(change_password.layer(middleware::from_fn(verify_signature))),
         )
-        // done mark
         .route(
             "/addsecondaryemail",
             post(add_secondary_email.layer(middleware::from_fn(verify_signature))),
         )
         .route(
             "/deleteaccount",
+            // later
             delete(delete_account.layer(middleware::from_fn(verify_signature))),
         )
+        // here
         .route(
             "/editname",
             put(edit_name.layer(middleware::from_fn(verify_signature))),
