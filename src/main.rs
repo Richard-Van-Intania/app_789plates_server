@@ -78,8 +78,6 @@ async fn root() -> Result<impl IntoResponse, StatusCode> {
     Ok(())
 }
 
-// user
-
 async fn search() -> impl IntoResponse {}
 
 //  plates
@@ -90,3 +88,7 @@ async fn search() -> impl IntoResponse {}
 // home feed fetch timeline
 
 // like plate, like profile
+
+// add plate
+
+// fetch profile
