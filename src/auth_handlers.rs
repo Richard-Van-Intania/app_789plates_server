@@ -388,7 +388,7 @@ pub async fn change_password(State(pool): State<PgPool>, Json(payload): Json<Tok
     if let Ok(TokenData { header: _, claims }) = token {
         StatusCode::BAD_REQUEST
     } else {
-        StatusCode::BAD_REQUEST
+        StatusCode::UNAUTHORIZED
     }
 }
 

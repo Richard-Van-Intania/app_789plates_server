@@ -33,3 +33,13 @@ UPDATE public.verification
 SET verified = true
 WHERE verification_id = 12 AND reference = 96 AND code = 663104 AND expire >= '2024-03-10 15:56:52.340805+07'
 RETURNING verified
+
+
+// correct syntax but password or user not correct
+StatusCode::UNAUTHORIZED
+
+// wrong syntax
+StatusCode::BAD_REQUEST
+
+// db or sendmail
+StatusCode::INTERNAL_SERVER_ERROR
