@@ -1,8 +1,8 @@
 use app_789plates_server::{
     account::{delete_account, edit_information, edit_name, edit_profile_picture},
     auth_handlers::{
-        add_secondary_email, check_availability_email, check_verification_code, create_new_account,
-        forgot_password, reset_password, sign_in,
+        add_secondary_email, change_password, check_availability_email, check_verification_code,
+        create_new_account, forgot_password, reset_password, sign_in,
     },
     graceful_shutdown::shutdown_signal,
     jwt::{renew_token, verify_signature},
@@ -31,9 +31,13 @@ async fn main() {
         .route("/createnewaccount", post(create_new_account))
         .route("/signin", post(sign_in))
         .route("/renewtoken", post(renew_token))
-        // done mark
         .route("/forgotpassword", post(forgot_password))
+        // done mark
         .route("/resetpassword", put(reset_password))
+        .route(
+            "/changepassword",
+            put(change_password.layer(middleware::from_fn(verify_signature))),
+        )
         .route(
             "/addsecondaryemail",
             post(add_secondary_email.layer(middleware::from_fn(verify_signature))),

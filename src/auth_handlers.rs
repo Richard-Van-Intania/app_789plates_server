@@ -243,12 +243,79 @@ pub async fn sign_in(
     }
 }
 
-pub async fn forgot_password() -> Result<impl IntoResponse, StatusCode> {
-    Ok(())
+pub async fn forgot_password(
+    State(pool): State<PgPool>,
+    Json(payload): Json<Email>,
+) -> Result<Json<VerificationRes>, StatusCode> {
+    let email = payload.email.trim().to_lowercase();
+    let valid = EmailAddress::is_valid(&email);
+    if valid {
+        let fetch_email = sqlx::query(
+            "SELECT users_id FROM public.users WHERE primary_email = $1 OR secondary_email = $2",
+        )
+        .bind(&email)
+        .bind(&email)
+        .fetch_all(&pool)
+        .await;
+        if let Ok(rows) = fetch_email {
+            if !rows.is_empty() {
+                let rand: u8 = random();
+                let reference: i32 = rand as i32;
+                let mut rng = SmallRng::from_rng(thread_rng()).unwrap();
+                let code: i32 = rng.gen_range(999..999999);
+                let expire: DateTime<Utc> = Utc::now() + Duration::minutes(MINUTES);
+                let insert_code: Result<(i32, i32), sqlx::Error> = sqlx::query_as(
+                    "INSERT INTO public.verification(reference, code, expire)
+                VALUES ($1, $2, $3)
+                RETURNING verification_id, reference",
+                )
+                .bind(reference)
+                .bind(code)
+                .bind(expire)
+                .fetch_one(&pool)
+                .await;
+                if let Ok((verification_id, reference)) = insert_code {
+                    let sent = send_email(&email, reference, code);
+                    if let Ok(_) = sent {
+                        Ok(Json(VerificationRes {
+                            verification_id,
+                            email,
+                            reference,
+                        }))
+                    } else {
+                        Err(StatusCode::INTERNAL_SERVER_ERROR)
+                    }
+                } else {
+                    Err(StatusCode::INTERNAL_SERVER_ERROR)
+                }
+            } else {
+                Err(StatusCode::BAD_REQUEST)
+            }
+        } else {
+            Err(StatusCode::INTERNAL_SERVER_ERROR)
+        }
+    } else {
+        Err(StatusCode::BAD_REQUEST)
+    }
 }
+
 pub async fn reset_password() -> Result<impl IntoResponse, StatusCode> {
+    // after forgot
     Ok(())
 }
+
+pub async fn change_password(
+    State(pool): State<PgPool>,
+    Json(payload): Json<Token>,
+) -> Result<impl IntoResponse, StatusCode> {
+    // inside login
+    // use miffleware
+    // check  refresh
+    Ok(())
+}
+
 pub async fn add_secondary_email() -> Result<impl IntoResponse, StatusCode> {
+    // inside login
+    // check both access and refresh
     Ok(())
 }
