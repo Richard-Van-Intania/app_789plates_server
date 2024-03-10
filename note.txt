@@ -22,3 +22,9 @@ middleware now only header
 
 query for dont want Result
 query_as for result
+
+reading &self
+consuming self
+mutating &mut self, mut self
+
+todo!()

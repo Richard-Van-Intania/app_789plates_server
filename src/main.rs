@@ -5,7 +5,7 @@ use app_789plates_server::{
         forgot_password, reset_password, sign_in,
     },
     graceful_shutdown::shutdown_signal,
-    jwt::verify_signature,
+    jwt::{renew_token, verify_signature},
 };
 use axum::{
     handler::Handler,
@@ -29,7 +29,9 @@ async fn main() {
         .route("/checkavailabilityemail", post(check_availability_email))
         .route("/checkverificationcode", post(check_verification_code))
         .route("/createnewaccount", post(create_new_account))
-        .route("/signin", get(sign_in))
+        .route("/signin", post(sign_in))
+        .route("/renewtoken", post(renew_token))
+        // done mark
         .route("/forgotpassword", post(forgot_password))
         .route("/resetpassword", put(reset_password))
         .route(

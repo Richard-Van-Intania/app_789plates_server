@@ -1,9 +1,10 @@
-use axum::{extract::Request, http::StatusCode, middleware::Next, response::IntoResponse};
+use axum::{extract::Request, http::StatusCode, middleware::Next, response::IntoResponse, Json};
 use axum_extra::{
     headers::{authorization::Bearer, Authorization},
     TypedHeader,
 };
-use jsonwebtoken::{decode, DecodingKey, Validation};
+use chrono::{Duration, Utc};
+use jsonwebtoken::{decode, encode, DecodingKey, EncodingKey, Header, TokenData, Validation};
 use serde::{Deserialize, Serialize};
 
 pub const ACCESS_TOKEN_KEY: &'static str = "618C654BBBF31A6D315BA7AB8AB2A";
@@ -43,4 +44,42 @@ pub async fn verify_signature(
     }
 }
 
-pub async fn renew_token() -> impl IntoResponse {}
+pub async fn renew_token(Json(payload): Json<Token>) -> Result<Json<Token>, StatusCode> {
+    let token = decode::<Claims>(
+        &payload.refresh_token,
+        &DecodingKey::from_secret(REFRESH_TOKEN_KEY.as_ref()),
+        &Validation::default(),
+    );
+    if let Ok(TokenData { header: _, claims }) = token {
+        let date = Utc::now();
+        let access_claims = Claims {
+            iat: date.timestamp() as usize,
+            exp: (date + Duration::minutes(60)).timestamp() as usize,
+            iss: ISSUER.to_string(),
+            sub: claims.sub.to_string(),
+        };
+        let refresh_claims = Claims {
+            iat: date.timestamp() as usize,
+            exp: (date + Duration::days(14)).timestamp() as usize,
+            iss: ISSUER.to_string(),
+            sub: claims.sub.to_string(),
+        };
+        let access_token = encode(
+            &Header::default(),
+            &access_claims,
+            &EncodingKey::from_secret(ACCESS_TOKEN_KEY.as_ref()),
+        );
+        let refresh_token = encode(
+            &Header::default(),
+            &refresh_claims,
+            &EncodingKey::from_secret(REFRESH_TOKEN_KEY.as_ref()),
+        );
+        let token = Token {
+            access_token: access_token.unwrap(),
+            refresh_token: refresh_token.unwrap(),
+        };
+        Ok(Json(token))
+    } else {
+        Err(StatusCode::UNAUTHORIZED)
+    }
+}
