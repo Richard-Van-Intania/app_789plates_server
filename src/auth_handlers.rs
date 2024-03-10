@@ -1,6 +1,7 @@
 use crate::{
     authentication::{
-        ChangePassword, CreateNewAccount, Email, SignIn, VerificationCode, VerificationRes,
+        AddSecondaryEmail, ChangePassword, CreateNewAccount, Email, SignIn, VerificationCode,
+        VerificationRes,
     },
     jwt::{Claims, Token, ACCESS_TOKEN_KEY, ISSUER, REFRESH_TOKEN_KEY},
     mailer::{send_email, MINUTES},
@@ -412,11 +413,28 @@ pub async fn change_password(
 
 pub async fn add_secondary_email(
     State(pool): State<PgPool>,
-    Json(payload): Json<Email>,
+    Json(payload): Json<AddSecondaryEmail>,
 ) -> StatusCode {
-    // inside login
-    // check both access and refresh
-    StatusCode::BAD_REQUEST
+    let email = payload.email.trim().to_lowercase();
+    let valid = EmailAddress::is_valid(&email);
+    if valid {
+        let token = decode::<Claims>(
+            &payload.refresh_token,
+            &DecodingKey::from_secret(REFRESH_TOKEN_KEY.as_ref()),
+            &Validation::default(),
+        );
+        if let Ok(TokenData { header: _, claims }) = token {
+            let users_id: i32 = claims.sub.parse().unwrap();
+            // check and update
+            StatusCode::OK
+        } else {
+            StatusCode::UNAUTHORIZED
+        }
+    } else {
+        StatusCode::BAD_REQUEST
+    }
 }
 
-pub async fn delete_account() -> impl IntoResponse {}
+pub async fn delete_account() -> StatusCode {
+    StatusCode::OK
+}

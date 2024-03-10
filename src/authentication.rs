@@ -39,3 +39,9 @@ pub struct ChangePassword {
     pub refresh_token: String,
     pub password: String,
 }
+
+#[derive(Deserialize)]
+pub struct AddSecondaryEmail {
+    pub refresh_token: String,
+    pub email: String,
+}
