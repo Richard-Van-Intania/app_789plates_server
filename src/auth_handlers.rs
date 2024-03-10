@@ -418,3 +418,5 @@ pub async fn add_secondary_email(
     // check both access and refresh
     StatusCode::BAD_REQUEST
 }
+
+pub async fn delete_account() -> impl IntoResponse {}
