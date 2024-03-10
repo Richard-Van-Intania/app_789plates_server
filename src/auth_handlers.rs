@@ -425,8 +425,34 @@ pub async fn add_secondary_email(
         );
         if let Ok(TokenData { header: _, claims }) = token {
             let users_id: i32 = claims.sub.parse().unwrap();
-            // check and update
-            StatusCode::OK
+            let fetch_email = sqlx::query(
+                "SELECT users_id FROM public.users WHERE primary_email = $1 OR secondary_email = $2",
+            )
+            .bind(&email)
+            .bind(&email)
+            .fetch_all(&pool)
+            .await;
+            if let Ok(rows) = fetch_email {
+                if rows.is_empty() {
+                    let update_secondary_email = sqlx::query(
+                        "UPDATE public.users
+                    SET secondary_email = $1
+                    WHERE users_id = $2",
+                    )
+                    .bind(&email)
+                    .bind(users_id)
+                    .execute(&pool)
+                    .await;
+                    match update_secondary_email {
+                        Ok(_) => StatusCode::OK,
+                        Err(_) => StatusCode::INTERNAL_SERVER_ERROR,
+                    }
+                } else {
+                    StatusCode::CONFLICT
+                }
+            } else {
+                StatusCode::INTERNAL_SERVER_ERROR
+            }
         } else {
             StatusCode::UNAUTHORIZED
         }
