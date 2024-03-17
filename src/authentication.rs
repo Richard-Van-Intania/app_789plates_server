@@ -56,3 +56,6 @@ pub struct Authentication {
     pub access_token: String,
     pub refresh_token: String,
 }
+
+pub const NULL_STRING: &'static str = "null";
+pub const NULL_INT: i32 = 0;
