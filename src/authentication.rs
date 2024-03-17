@@ -45,3 +45,14 @@ pub struct AddSecondaryEmail {
     pub refresh_token: String,
     pub email: String,
 }
+
+#[derive(Debug, Deserialize, Serialize)]
+pub struct Authentication {
+    pub verification_id: i32,
+    pub reference: i32,
+    pub code: i32,
+    pub email: String,
+    pub password: String,
+    pub access_token: String,
+    pub refresh_token: String,
+}
