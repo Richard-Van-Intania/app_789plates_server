@@ -52,10 +52,11 @@ pub struct Authentication {
     pub reference: i32,
     pub code: i32,
     pub email: String,
+    pub secondary_email: String,
     pub password: String,
     pub access_token: String,
     pub refresh_token: String,
 }
 
-pub const NULL_STRING: &'static str = "null";
-pub const NULL_INT: i32 = 0;
+pub const NULLED_STRING: &'static str = "null";
+pub const NULLED_INT: i32 = 0;
