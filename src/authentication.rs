@@ -56,7 +56,8 @@ pub struct Authentication {
     pub password: String,
     pub access_token: String,
     pub refresh_token: String,
+    pub users_id: i32,
 }
 
-pub const NULLED_STRING: &'static str = "null";
-pub const NULLED_INT: i32 = 0;
+pub const NULL_ALIAS_INT: &'static str = "null";
+pub const NULL_ALIAS_STRING: i32 = 0;

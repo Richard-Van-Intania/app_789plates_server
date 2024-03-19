@@ -3,17 +3,19 @@ use app_789plates_server::{
         add_secondary_email, change_password, check_availability_email, check_verification_code,
         create_new_account, delete_account, forgot_password, reset_password, sign_in,
     },
+    authentication::Email,
     graceful_shutdown::shutdown_signal,
     jwt::{renew_token, verify_signature},
     profile::{edit_information, edit_name, edit_profile_picture},
 };
 use axum::{
+    extract::Request,
     handler::Handler,
     http::StatusCode,
-    middleware::{self},
-    response::IntoResponse,
+    middleware::{self, Next},
+    response::{IntoResponse, Response},
     routing::{delete, get, post, put},
-    Router,
+    Json, Router,
 };
 use sqlx::PgPool;
 use std::time;
@@ -92,3 +94,16 @@ async fn search() -> impl IntoResponse {}
 // add plate
 
 // fetch profile
+
+async fn my_middleware(request: Request, next: Next) -> Response {
+    // do something with `request`...
+    let (parts, mut body) = request.into_parts();
+
+    let req = Request::from_parts(parts, body);
+
+    let response = next.run(req).await;
+
+    // do something with `response`...
+
+    response
+}
