@@ -106,7 +106,7 @@ pub async fn check_verification_code_old(
     }
 }
 
-pub async fn create_new_account(
+pub async fn create_new_account_old(
     State(pool): State<PgPool>,
     Json(payload): Json<CreateNewAccount>,
 ) -> Result<Json<Token>, StatusCode> {

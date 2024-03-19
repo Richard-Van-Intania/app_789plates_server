@@ -1,11 +1,15 @@
 use axum::{extract::State, http::StatusCode, Json};
 use chrono::{DateTime, Duration, Utc};
 use email_address::EmailAddress;
+use jsonwebtoken::{encode, EncodingKey, Header};
 use rand::{random, rngs::SmallRng, thread_rng, Rng, SeedableRng};
 use serde::{Deserialize, Serialize};
 use sqlx::PgPool;
 
-use crate::mailer::{send_email, MINUTES};
+use crate::{
+    jwt::{Claims, Token, ACCESS_TOKEN_KEY, ISSUER, REFRESH_TOKEN_KEY},
+    mailer::{send_email, MINUTES},
+};
 
 #[derive(Debug, Deserialize, Serialize)]
 pub struct Email {
@@ -77,7 +81,7 @@ pub async fn check_availability_email(
     let valid = EmailAddress::is_valid(&email);
     if valid {
         let fetch_email = sqlx::query(
-            "SELECT users_id FROM public.users WHERE primary_email = $1 OR secondary_email = $2",
+            "SELECT users_id FROM public.users WHERE (primary_email = $1 OR secondary_email = $2)",
         )
         .bind(&email)
         .bind(&email)
@@ -136,7 +140,7 @@ pub async fn check_verification_code(
     Json(payload): Json<Authentication>,
 ) -> Result<Json<Authentication>, StatusCode> {
     let fetch_code: Result<Option<(i32,DateTime<Utc>)>,  sqlx::Error> = sqlx::query_as(
-        "SELECT verification_id, expire FROM public.verification WHERE verification_id = $1 AND reference = $2 AND code = $3 AND verified = false",
+        "SELECT verification_id, expire FROM public.verification WHERE (verification_id = $1 AND reference = $2 AND code = $3 AND verified = false)",
     )
     .bind(payload.verification_id)
     .bind(payload.reference)
@@ -175,5 +179,98 @@ pub async fn check_verification_code(
             None => Err(StatusCode::BAD_REQUEST),
         },
         Err(_) => Err(StatusCode::INTERNAL_SERVER_ERROR),
+    }
+}
+
+pub async fn create_new_account(
+    State(pool): State<PgPool>,
+    Json(payload): Json<Authentication>,
+) -> Result<Json<Authentication>, StatusCode> {
+    let email = payload.email.trim().to_lowercase();
+    let valid = EmailAddress::is_valid(&email);
+    if valid {
+        let fetch_email = sqlx::query(
+            "SELECT users_id FROM public.users WHERE (primary_email = $1 OR secondary_email = $2)",
+        )
+        .bind(&email)
+        .bind(&email)
+        .fetch_all(&pool)
+        .await;
+        match fetch_email {
+            Ok(rows) => {
+                if rows.is_empty() {
+                    let fetch_code: Result<Option<(i32,)>,  sqlx::Error> = sqlx::query_as(
+                        "SELECT verification_id FROM public.verification WHERE (verification_id = $1 AND reference = $2 AND code = $3 AND verified = true)",
+                    )
+                    .bind(payload.verification_id)
+                    .bind(payload.reference)
+                    .bind(payload.code)
+                    .fetch_optional(&pool)
+                    .await;
+                    match fetch_code {
+                        Ok(ok) => match ok {
+                            Some(_) => {
+                                let date = Utc::now();
+                                let insert_user: Result<(i32,), sqlx::Error> = sqlx::query_as(
+                                    "INSERT INTO public.users (name, primary_email, password, created_date) VALUES ($1, $2, $3, $4) RETURNING users_id",
+                                )
+                                .bind(*email.split("@").collect::<Vec<&str>>().get(0).unwrap())
+                                .bind(&email)
+                                .bind(blake3::hash(payload.password.as_bytes()).to_string())
+                                .bind(date)
+                                .fetch_one(&pool)
+                                .await;
+                                match insert_user {
+                                    Ok((users_id,)) => {
+                                        let access_claims = Claims {
+                                            iat: date.timestamp() as usize,
+                                            exp: (date + Duration::minutes(60)).timestamp()
+                                                as usize,
+                                            iss: ISSUER.to_string(),
+                                            sub: users_id.to_string(),
+                                        };
+                                        let refresh_claims = Claims {
+                                            iat: date.timestamp() as usize,
+                                            exp: (date + Duration::days(14)).timestamp() as usize,
+                                            iss: ISSUER.to_string(),
+                                            sub: users_id.to_string(),
+                                        };
+                                        let access_token = encode(
+                                            &Header::default(),
+                                            &access_claims,
+                                            &EncodingKey::from_secret(ACCESS_TOKEN_KEY.as_ref()),
+                                        );
+                                        let refresh_token = encode(
+                                            &Header::default(),
+                                            &refresh_claims,
+                                            &EncodingKey::from_secret(REFRESH_TOKEN_KEY.as_ref()),
+                                        );
+                                        Ok(Json(Authentication {
+                                            verification_id: NULL_ALIAS_INT,
+                                            reference: NULL_ALIAS_INT,
+                                            code: NULL_ALIAS_INT,
+                                            email,
+                                            secondary_email: NULL_ALIAS_STRING.to_owned(),
+                                            password: NULL_ALIAS_STRING.to_owned(),
+                                            access_token: access_token.unwrap(),
+                                            refresh_token: refresh_token.unwrap(),
+                                            users_id,
+                                        }))
+                                    }
+                                    Err(_) => Err(StatusCode::INTERNAL_SERVER_ERROR),
+                                }
+                            }
+                            None => Err(StatusCode::BAD_REQUEST),
+                        },
+                        Err(_) => Err(StatusCode::INTERNAL_SERVER_ERROR),
+                    }
+                } else {
+                    Err(StatusCode::BAD_REQUEST)
+                }
+            }
+            Err(_) => Err(StatusCode::INTERNAL_SERVER_ERROR),
+        }
+    } else {
+        Err(StatusCode::BAD_REQUEST)
     }
 }
