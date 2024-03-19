@@ -13,7 +13,7 @@ use jsonwebtoken::{decode, encode, DecodingKey, EncodingKey, Header, TokenData, 
 use rand::{random, rngs::SmallRng, thread_rng, Rng, SeedableRng};
 use sqlx::PgPool;
 
-pub async fn check_availability_email(
+pub async fn check_availability_email_old(
     State(pool): State<PgPool>,
     Json(payload): Json<Email>,
 ) -> Result<Json<VerificationRes>, StatusCode> {
