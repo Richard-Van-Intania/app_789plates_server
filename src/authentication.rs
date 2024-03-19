@@ -130,3 +130,50 @@ pub async fn check_availability_email(
         Err(StatusCode::BAD_REQUEST)
     }
 }
+
+pub async fn check_verification_code(
+    State(pool): State<PgPool>,
+    Json(payload): Json<Authentication>,
+) -> Result<Json<Authentication>, StatusCode> {
+    let fetch_code: Result<Option<(i32,DateTime<Utc>)>,  sqlx::Error> = sqlx::query_as(
+        "SELECT verification_id, expire FROM public.verification WHERE verification_id = $1 AND reference = $2 AND code = $3 AND verified = false",
+    )
+    .bind(payload.verification_id)
+    .bind(payload.reference)
+    .bind(payload.code)
+    .fetch_optional(&pool)
+    .await;
+    match fetch_code {
+        Ok(ok) => match ok {
+            Some((verification_id, expire)) => {
+                let date = Utc::now();
+                if expire > date {
+                    let update_code = sqlx::query(
+                        "UPDATE public.verification SET verified = true WHERE verification_id = $1",
+                    )
+                    .bind(verification_id)
+                    .execute(&pool)
+                    .await;
+                    match update_code {
+                        Ok(_) => Ok(Json(Authentication {
+                            verification_id,
+                            reference: payload.reference,
+                            code: payload.code,
+                            email: payload.email,
+                            secondary_email: NULL_ALIAS_STRING.to_owned(),
+                            password: NULL_ALIAS_STRING.to_owned(),
+                            access_token: NULL_ALIAS_STRING.to_owned(),
+                            refresh_token: NULL_ALIAS_STRING.to_owned(),
+                            users_id: NULL_ALIAS_INT,
+                        })),
+                        Err(_) => Err(StatusCode::INTERNAL_SERVER_ERROR),
+                    }
+                } else {
+                    Err(StatusCode::BAD_REQUEST)
+                }
+            }
+            None => Err(StatusCode::BAD_REQUEST),
+        },
+        Err(_) => Err(StatusCode::INTERNAL_SERVER_ERROR),
+    }
+}

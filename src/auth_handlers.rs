@@ -69,7 +69,7 @@ pub async fn check_availability_email_old(
     }
 }
 
-pub async fn check_verification_code(
+pub async fn check_verification_code_old(
     State(pool): State<PgPool>,
     Json(payload): Json<VerificationCode>,
 ) -> StatusCode {
