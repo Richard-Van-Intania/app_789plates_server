@@ -3,12 +3,15 @@ use app_789plates_server::{
         add_secondary_email, change_password, delete_account, forgot_password, reset_password,
         sign_in,
     },
-    authentication::{check_availability_email, check_verification_code, create_new_account},
+    authentication::{
+        check_availability_email, check_verification_code, create_new_account, Authentication,
+    },
     graceful_shutdown::shutdown_signal,
     jwt::{renew_token, verify_signature},
     profile::{edit_information, edit_name, edit_profile_picture},
 };
 use axum::{
+    body::{Body, Bytes},
     extract::Request,
     handler::Handler,
     http::StatusCode,
@@ -17,6 +20,7 @@ use axum::{
     routing::{delete, get, post, put},
     Json, Router,
 };
+
 use sqlx::PgPool;
 use std::time;
 use tower_http::{timeout::TimeoutLayer, trace::TraceLayer};
@@ -80,7 +84,7 @@ async fn root() -> Result<impl IntoResponse, StatusCode> {
     Ok(())
 }
 
-async fn search() -> impl IntoResponse {}
+async fn search(Json(payload): Json<Authentication>) -> impl IntoResponse {}
 
 //  plates
 // add edit delete transfer show hide
@@ -95,15 +99,4 @@ async fn search() -> impl IntoResponse {}
 
 // fetch profile
 
-async fn my_middleware(request: Request, next: Next) -> Response {
-    // do something with `request`...
-    let (parts, mut body) = request.into_parts();
-
-    let req = Request::from_parts(parts, body);
-
-    let response = next.run(req).await;
-
-    // do something with `response`...
-
-    response
-}
+// impl IntoResponse

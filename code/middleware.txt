@@ -49,3 +49,26 @@ async fn validate_email(request: Request, next: Next) -> Response {
 
     response
 }
+
+
+
+// async fn test(Json(payload): Json<Authentication>) -> impl IntoResponse {}
+
+// async fn test_middleware(request: Request<Json<Authentication>>, next: Next) -> impl IntoResponse {
+//     let (parts, mut body) = request.into_parts();
+//     body.0.email = body.0.email.to_lowercase();
+
+//     let (_, body) = Json::into_response(body).into_parts();
+
+//     // let bytes = body.collect().await.to_bytes();
+//     // let x = Body::collect(body.);
+
+//     // let request0 = Request::from_parts(parts, body);
+//     // do something with `request`...
+
+//     let response = next.run(Request::from_parts(parts, body)).await;
+
+//     // do something with `response`...
+
+//     response
+// }

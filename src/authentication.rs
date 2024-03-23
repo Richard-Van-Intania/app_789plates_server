@@ -7,7 +7,7 @@ use serde::{Deserialize, Serialize};
 use sqlx::PgPool;
 
 use crate::{
-    jwt::{Claims, Token, ACCESS_TOKEN_KEY, ISSUER, REFRESH_TOKEN_KEY},
+    jwt::{Claims, ACCESS_TOKEN_KEY, ISSUER, REFRESH_TOKEN_KEY},
     mailer::{send_email, MINUTES},
 };
 
