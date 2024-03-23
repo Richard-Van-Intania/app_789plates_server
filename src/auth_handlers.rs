@@ -302,7 +302,7 @@ pub async fn forgot_password_old(
     }
 }
 
-pub async fn reset_password(
+pub async fn reset_password_old(
     State(pool): State<PgPool>,
     Json(payload): Json<CreateNewAccount>,
 ) -> Result<Json<Token>, StatusCode> {

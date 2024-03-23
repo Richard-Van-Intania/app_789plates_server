@@ -188,7 +188,8 @@ pub async fn create_new_account(
 ) -> Result<Json<Authentication>, StatusCode> {
     let email = payload.email.trim().to_lowercase();
     let valid = EmailAddress::is_valid(&email);
-    if valid {
+    let password = payload.password;
+    if valid && !password.is_empty() {
         let fetch_email = sqlx::query(
             "SELECT users_id FROM public.users WHERE (primary_email = $1 OR secondary_email = $2)",
         )
@@ -216,7 +217,7 @@ pub async fn create_new_account(
                                 )
                                 .bind(*email.split("@").collect::<Vec<&str>>().get(0).unwrap())
                                 .bind(&email)
-                                .bind(blake3::hash(payload.password.as_bytes()).to_string())
+                                .bind(blake3::hash(password.as_bytes()).to_string())
                                 .bind(date)
                                 .fetch_one(&pool)
                                 .await;
@@ -346,7 +347,7 @@ pub async fn forgot_password(
     let valid = EmailAddress::is_valid(&email);
     if valid {
         let fetch_email = sqlx::query(
-            "SELECT users_id FROM public.users WHERE primary_email = $1 OR secondary_email = $2",
+            "SELECT users_id FROM public.users WHERE (primary_email = $1 OR secondary_email = $2)",
         )
         .bind(&email)
         .bind(&email)
@@ -388,6 +389,92 @@ pub async fn forgot_password(
                     }
                 } else {
                     Err(StatusCode::INTERNAL_SERVER_ERROR)
+                }
+            } else {
+                Err(StatusCode::BAD_REQUEST)
+            }
+        } else {
+            Err(StatusCode::INTERNAL_SERVER_ERROR)
+        }
+    } else {
+        Err(StatusCode::BAD_REQUEST)
+    }
+}
+
+pub async fn reset_password(
+    State(pool): State<PgPool>,
+    Json(payload): Json<Authentication>,
+) -> Result<Json<Authentication>, StatusCode> {
+    let email = payload.email.trim().to_lowercase();
+    let valid = EmailAddress::is_valid(&email);
+    let password = payload.password;
+    if valid && !password.is_empty() {
+        let date = Utc::now();
+        let update_code: Result<Option<(bool,)>, sqlx::Error> = sqlx::query_as(
+            "UPDATE public.verification
+        SET verified = true
+        WHERE (verification_id = $1 AND reference = $2 AND code = $3 AND expire > $4)
+        RETURNING verified",
+        )
+        .bind(payload.verification_id)
+        .bind(payload.reference)
+        .bind(payload.code)
+        .bind(date)
+        .fetch_optional(&pool)
+        .await;
+        if let Ok(opt_verified) = update_code {
+            if let Some((verified,)) = opt_verified {
+                if verified {
+                    let update_password: Result<(i32, String), sqlx::Error> = sqlx::query_as(
+                        "UPDATE public.users
+                    SET password = $1
+                    WHERE (primary_email = $2 OR secondary_email = $3)
+                    RETURNING users_id, primary_email",
+                    )
+                    .bind(blake3::hash(password.as_bytes()).to_string())
+                    .bind(&email)
+                    .bind(&email)
+                    .fetch_one(&pool)
+                    .await;
+                    if let Ok((users_id, primary_email)) = update_password {
+                        let access_claims = Claims {
+                            iat: date.timestamp() as usize,
+                            exp: (date + Duration::minutes(60)).timestamp() as usize,
+                            iss: ISSUER.to_string(),
+                            sub: users_id.to_string(),
+                        };
+                        let refresh_claims = Claims {
+                            iat: date.timestamp() as usize,
+                            exp: (date + Duration::days(14)).timestamp() as usize,
+                            iss: ISSUER.to_string(),
+                            sub: users_id.to_string(),
+                        };
+                        let access_token = encode(
+                            &Header::default(),
+                            &access_claims,
+                            &EncodingKey::from_secret(ACCESS_TOKEN_KEY.as_ref()),
+                        );
+                        let refresh_token = encode(
+                            &Header::default(),
+                            &refresh_claims,
+                            &EncodingKey::from_secret(REFRESH_TOKEN_KEY.as_ref()),
+                        );
+                        Ok(Json(Authentication {
+                            verification_id: NULL_ALIAS_INT,
+                            reference: NULL_ALIAS_INT,
+                            code: NULL_ALIAS_INT,
+                            email: primary_email,
+                            secondary_email: NULL_ALIAS_STRING.to_string(),
+                            password: NULL_ALIAS_STRING.to_string(),
+                            access_token: access_token.unwrap(),
+                            refresh_token: refresh_token.unwrap(),
+                            users_id,
+                        }))
+                    } else {
+                        Err(StatusCode::INTERNAL_SERVER_ERROR)
+                    }
+                } else {
+                    Err(StatusCode::BAD_REQUEST)
                 }
             } else {
                 Err(StatusCode::BAD_REQUEST)
