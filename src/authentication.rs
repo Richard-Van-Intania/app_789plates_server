@@ -487,6 +487,7 @@ pub async fn reset_password(
     }
 }
 
+// inside
 pub async fn change_password(
     State(pool): State<PgPool>,
     Json(payload): Json<ChangePassword>,
