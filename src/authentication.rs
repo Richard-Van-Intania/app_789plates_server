@@ -1,7 +1,7 @@
 use axum::{extract::State, http::StatusCode, Json};
 use chrono::{DateTime, Duration, Utc};
 use email_address::EmailAddress;
-use jsonwebtoken::{encode, EncodingKey, Header};
+use jsonwebtoken::{decode, encode, DecodingKey, EncodingKey, Header, TokenData, Validation};
 use rand::{random, rngs::SmallRng, thread_rng, Rng, SeedableRng};
 use serde::{Deserialize, Serialize};
 use sqlx::PgPool;
@@ -484,5 +484,34 @@ pub async fn reset_password(
         }
     } else {
         Err(StatusCode::BAD_REQUEST)
+    }
+}
+
+pub async fn change_password(
+    State(pool): State<PgPool>,
+    Json(payload): Json<ChangePassword>,
+) -> StatusCode {
+    let token = decode::<Claims>(
+        &payload.refresh_token,
+        &DecodingKey::from_secret(REFRESH_TOKEN_KEY.as_ref()),
+        &Validation::default(),
+    );
+    if let Ok(TokenData { header: _, claims }) = token {
+        let users_id: i32 = claims.sub.parse().unwrap();
+        let update_password = sqlx::query(
+            "UPDATE public.users
+        SET password = $1
+        WHERE users_id = $2",
+        )
+        .bind(blake3::hash(payload.password.as_bytes()).to_string())
+        .bind(users_id)
+        .execute(&pool)
+        .await;
+        match update_password {
+            Ok(_) => StatusCode::OK,
+            Err(_) => StatusCode::INTERNAL_SERVER_ERROR,
+        }
+    } else {
+        StatusCode::UNAUTHORIZED
     }
 }

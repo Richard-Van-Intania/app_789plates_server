@@ -382,7 +382,7 @@ pub async fn reset_password_old(
     }
 }
 
-pub async fn change_password(
+pub async fn change_password_old(
     State(pool): State<PgPool>,
     Json(payload): Json<ChangePassword>,
 ) -> StatusCode {

@@ -1,8 +1,8 @@
 use app_789plates_server::{
-    auth_handlers::{add_secondary_email, change_password, delete_account},
+    auth_handlers::{add_secondary_email, delete_account},
     authentication::{
-        check_availability_email, check_verification_code, create_new_account, forgot_password,
-        reset_password, sign_in, Authentication,
+        change_password, check_availability_email, check_verification_code, create_new_account,
+        forgot_password, reset_password, sign_in, Authentication,
     },
     graceful_shutdown::shutdown_signal,
     jwt::{renew_token, verify_signature},
