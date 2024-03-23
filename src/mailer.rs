@@ -9,7 +9,7 @@ pub const PASSWORD: &'static str = "pcma cjfo slth uhti";
 pub const MINUTES: i64 = 10;
 
 pub fn send_email(email: &str, reference: i32, code: i32) -> Result<Response, Error> {
-    let creds = Credentials::new(EMAIL.to_owned(), PASSWORD.to_owned());
+    let creds = Credentials::new(EMAIL.to_string(), PASSWORD.to_string());
     let mailer = SmtpTransport::relay("smtp.gmail.com")
         .unwrap()
         .credentials(creds)

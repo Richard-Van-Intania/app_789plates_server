@@ -189,7 +189,7 @@ pub async fn create_new_account_old(
     }
 }
 
-pub async fn sign_in(
+pub async fn sign_in_old(
     State(pool): State<PgPool>,
     Json(payload): Json<SignIn>,
 ) -> Result<Json<Token>, StatusCode> {
@@ -246,7 +246,7 @@ pub async fn sign_in(
     }
 }
 
-pub async fn forgot_password(
+pub async fn forgot_password_old(
     State(pool): State<PgPool>,
     Json(payload): Json<Email>,
 ) -> Result<Json<VerificationRes>, StatusCode> {
