@@ -69,7 +69,7 @@ async fn main() {
             get(search.layer(middleware::from_fn(verify_signature))),
         )
         .layer(TraceLayer::new_for_http())
-        .layer(TimeoutLayer::new(time::Duration::from_secs(30)))
+        .layer(TimeoutLayer::new(time::Duration::from_secs(15)))
         .with_state(pool);
     let listener = tokio::net::TcpListener::bind("0.0.0.0:8700").await.unwrap();
     axum::serve(listener, app)

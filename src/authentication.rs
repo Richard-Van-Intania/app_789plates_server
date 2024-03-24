@@ -135,6 +135,7 @@ pub async fn check_availability_email(
     }
 }
 
+// reuse with forgot
 pub async fn check_verification_code(
     State(pool): State<PgPool>,
     Json(payload): Json<Authentication>,
