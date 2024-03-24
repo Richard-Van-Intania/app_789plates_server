@@ -34,9 +34,10 @@ async fn main() {
         .route("/checkverificationcode", post(check_verification_code))
         .route("/createnewaccount", post(create_new_account))
         .route("/signin", post(sign_in))
-        .route("/renewtoken", post(renew_token))
         .route("/forgotpassword", post(forgot_password))
         .route("/resetpassword", put(reset_password))
+        // here
+        .route("/renewtoken", post(renew_token))
         .route(
             "/changepassword",
             put(change_password.layer(middleware::from_fn(verify_signature))),
