@@ -135,7 +135,7 @@ pub async fn check_availability_email(
     }
 }
 
-// reuse with forgot
+// use both new account and forgot password
 pub async fn check_verification_code(
     State(pool): State<PgPool>,
     Json(payload): Json<Authentication>,
@@ -410,22 +410,17 @@ pub async fn reset_password(
     let valid = EmailAddress::is_valid(&email);
     let password = payload.password;
     if valid && !password.is_empty() {
-        let date = Utc::now();
-        let update_code: Result<Option<(bool,)>, sqlx::Error> = sqlx::query_as(
-            "UPDATE public.verification
-        SET verified = true
-        WHERE (verification_id = $1 AND reference = $2 AND code = $3 AND expire > $4)
-        RETURNING verified",
+        let fetch_code: Result<Option<(i32,)>,  sqlx::Error> = sqlx::query_as(
+            "SELECT verification_id FROM public.verification WHERE (verification_id = $1 AND reference = $2 AND code = $3 AND verified = true)",
         )
         .bind(payload.verification_id)
         .bind(payload.reference)
         .bind(payload.code)
-        .bind(date)
         .fetch_optional(&pool)
         .await;
-        if let Ok(opt_verified) = update_code {
-            if let Some((verified,)) = opt_verified {
-                if verified {
+        match fetch_code {
+            Ok(ok) => match ok {
+                Some(_) => {
                     let update_password: Result<(i32, String), sqlx::Error> = sqlx::query_as(
                         "UPDATE public.users
                     SET password = $1
@@ -438,6 +433,7 @@ pub async fn reset_password(
                     .fetch_one(&pool)
                     .await;
                     if let Ok((users_id, primary_email)) = update_password {
+                        let date = Utc::now();
                         let access_claims = Claims {
                             iat: date.timestamp() as usize,
                             exp: (date + Duration::minutes(60)).timestamp() as usize,
@@ -474,21 +470,17 @@ pub async fn reset_password(
                     } else {
                         Err(StatusCode::INTERNAL_SERVER_ERROR)
                     }
-                } else {
-                    Err(StatusCode::BAD_REQUEST)
                 }
-            } else {
-                Err(StatusCode::BAD_REQUEST)
-            }
-        } else {
-            Err(StatusCode::INTERNAL_SERVER_ERROR)
+                None => Err(StatusCode::BAD_REQUEST),
+            },
+            Err(_) => Err(StatusCode::INTERNAL_SERVER_ERROR),
         }
     } else {
         Err(StatusCode::BAD_REQUEST)
     }
 }
 
-// inside
+// inside login
 pub async fn change_password(
     State(pool): State<PgPool>,
     Json(payload): Json<ChangePassword>,
