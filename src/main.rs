@@ -10,7 +10,7 @@ use app_789plates_server::{
 };
 use axum::{
     body::{Body, Bytes},
-    extract::Request,
+    extract::{Query, Request},
     handler::Handler,
     http::StatusCode,
     middleware::{self, Next},
@@ -19,8 +19,12 @@ use axum::{
     Json, Router,
 };
 
+use axum_extra::{
+    headers::{authorization::Bearer, Authorization},
+    TypedHeader,
+};
 use sqlx::PgPool;
-use std::time;
+use std::{collections::HashMap, time};
 use tower_http::{timeout::TimeoutLayer, trace::TraceLayer};
 
 #[tokio::main]
@@ -83,8 +87,14 @@ async fn root() -> Result<impl IntoResponse, StatusCode> {
     Ok(())
 }
 
-async fn search() -> Result<impl IntoResponse, StatusCode> {
-    Ok(())
+async fn search(
+    TypedHeader(Authorization(bearer)): TypedHeader<Authorization<Bearer>>,
+    Query(params): Query<HashMap<String, String>>,
+) -> Result<impl IntoResponse, StatusCode> {
+    match params.get("query") {
+        Some(query) => Ok(query.to_string().to_uppercase()),
+        None => Err(StatusCode::BAD_REQUEST),
+    }
 }
 
 //  plates
