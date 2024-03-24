@@ -83,7 +83,9 @@ async fn root() -> Result<impl IntoResponse, StatusCode> {
     Ok(())
 }
 
-async fn search(Json(payload): Json<Authentication>) -> impl IntoResponse {}
+async fn search() -> Result<impl IntoResponse, StatusCode> {
+    Ok(())
+}
 
 //  plates
 // add edit delete transfer show hide

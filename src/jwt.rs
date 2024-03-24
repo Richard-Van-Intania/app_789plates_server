@@ -7,6 +7,8 @@ use chrono::{Duration, Utc};
 use jsonwebtoken::{decode, encode, DecodingKey, EncodingKey, Header, TokenData, Validation};
 use serde::{Deserialize, Serialize};
 
+use crate::authentication::{Authentication, NULL_ALIAS_INT, NULL_ALIAS_STRING};
+
 pub const ACCESS_TOKEN_KEY: &'static str = "618C654BBBF31A6D315BA7AB8AB2A";
 pub const REFRESH_TOKEN_KEY: &'static str = "D586891172B4BFC6AD15B449DB593";
 pub const ISSUER: &'static str = "app789plates";
@@ -44,7 +46,9 @@ pub async fn verify_signature(
     }
 }
 
-pub async fn renew_token(Json(payload): Json<Token>) -> Result<Json<Token>, StatusCode> {
+pub async fn renew_token(
+    Json(payload): Json<Authentication>,
+) -> Result<Json<Authentication>, StatusCode> {
     let token = decode::<Claims>(
         &payload.refresh_token,
         &DecodingKey::from_secret(REFRESH_TOKEN_KEY.as_ref()),
@@ -74,11 +78,17 @@ pub async fn renew_token(Json(payload): Json<Token>) -> Result<Json<Token>, Stat
             &refresh_claims,
             &EncodingKey::from_secret(REFRESH_TOKEN_KEY.as_ref()),
         );
-        let token = Token {
+        Ok(Json(Authentication {
+            verification_id: NULL_ALIAS_INT,
+            reference: NULL_ALIAS_INT,
+            code: NULL_ALIAS_INT,
+            email: NULL_ALIAS_STRING.to_string(),
+            secondary_email: NULL_ALIAS_STRING.to_string(),
+            password: NULL_ALIAS_STRING.to_string(),
             access_token: access_token.unwrap(),
             refresh_token: refresh_token.unwrap(),
-        };
-        Ok(Json(token))
+            users_id: NULL_ALIAS_INT,
+        }))
     } else {
         Err(StatusCode::UNAUTHORIZED)
     }
