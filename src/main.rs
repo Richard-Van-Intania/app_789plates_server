@@ -40,8 +40,8 @@ async fn main() {
         .route("/signin", post(sign_in))
         .route("/forgotpassword", post(forgot_password))
         .route("/resetpassword", put(reset_password))
-        // here
         .route("/renewtoken", post(renew_token))
+        // here
         .route(
             "/changepassword",
             put(change_password.layer(middleware::from_fn(verify_signature))),

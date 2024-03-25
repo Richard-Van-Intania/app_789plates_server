@@ -90,6 +90,6 @@ pub async fn renew_token(
             users_id: NULL_ALIAS_INT,
         }))
     } else {
-        Err(StatusCode::UNAUTHORIZED)
+        Err(StatusCode::FORBIDDEN)
     }
 }
