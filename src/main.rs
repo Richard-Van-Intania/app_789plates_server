@@ -2,7 +2,7 @@ use app_789plates_server::{
     auth_handlers::{add_secondary_email, delete_account},
     authentication::{
         change_password, check_availability_email, check_verification_code, create_new_account,
-        forgot_password, reset_password, sign_in, Authentication,
+        forgot_password, reset_password, sign_in, verify_key, Authentication,
     },
     graceful_shutdown::shutdown_signal,
     jwt::{renew_token, verify_signature},
@@ -34,13 +34,34 @@ async fn main() {
         .unwrap();
     let app = Router::new()
         .route("/", get(|| async {}))
-        .route("/checkavailabilityemail", post(check_availability_email))
-        .route("/checkverificationcode", post(check_verification_code))
-        .route("/createnewaccount", post(create_new_account))
-        .route("/signin", post(sign_in))
-        .route("/forgotpassword", post(forgot_password))
-        .route("/resetpassword", put(reset_password))
-        .route("/renewtoken", post(renew_token))
+        .route(
+            "/checkavailabilityemail",
+            post(check_availability_email.layer(middleware::from_fn(verify_key))),
+        )
+        .route(
+            "/checkverificationcode",
+            post(check_verification_code.layer(middleware::from_fn(verify_key))),
+        )
+        .route(
+            "/createnewaccount",
+            post(create_new_account.layer(middleware::from_fn(verify_key))),
+        )
+        .route(
+            "/signin",
+            post(sign_in.layer(middleware::from_fn(verify_key))),
+        )
+        .route(
+            "/forgotpassword",
+            post(forgot_password.layer(middleware::from_fn(verify_key))),
+        )
+        .route(
+            "/resetpassword",
+            put(reset_password.layer(middleware::from_fn(verify_key))),
+        )
+        .route(
+            "/renewtoken",
+            post(renew_token.layer(middleware::from_fn(verify_key))),
+        )
         // here
         .route(
             "/changepassword",
@@ -73,6 +94,7 @@ async fn main() {
             "/search",
             get(search.layer(middleware::from_fn(verify_signature))),
         )
+        .route("/test", get(test.layer(middleware::from_fn(verify_key))))
         .layer(TraceLayer::new_for_http())
         .layer(TimeoutLayer::new(time::Duration::from_secs(15)))
         .with_state(pool);
@@ -84,6 +106,10 @@ async fn main() {
 }
 
 async fn root() -> Result<impl IntoResponse, StatusCode> {
+    Ok(())
+}
+
+async fn test() -> Result<impl IntoResponse, StatusCode> {
     Ok(())
 }
 

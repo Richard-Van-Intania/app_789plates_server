@@ -1,4 +1,14 @@
-use axum::{extract::State, http::StatusCode, Json};
+use axum::{
+    extract::{Request, State},
+    http::StatusCode,
+    middleware::Next,
+    response::IntoResponse,
+    Json,
+};
+use axum_extra::{
+    headers::{authorization::Bearer, Authorization},
+    TypedHeader,
+};
 use chrono::{DateTime, Duration, Utc};
 use email_address::EmailAddress;
 use jsonwebtoken::{decode, encode, DecodingKey, EncodingKey, Header, TokenData, Validation};
@@ -72,6 +82,7 @@ pub struct Authentication {
 
 pub const NULL_ALIAS_STRING: &'static str = "null";
 pub const NULL_ALIAS_INT: i32 = 0;
+pub const KEY_TOKEN: &'static str = "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJhcHA3ODlwbGF0ZXMiLCJzdWIiOiIxNiIsImV4cCI6MTcxMzU0MDM5NywiaWF0IjoxNzEyMzMwNzk3fQ.bXU1LaEGV7oH4YA3Kqtqsb5LydWQAgRHZiJpg30nd24";
 
 pub async fn check_availability_email(
     State(pool): State<PgPool>,
@@ -507,5 +518,19 @@ pub async fn change_password(
         }
     } else {
         StatusCode::UNAUTHORIZED
+    }
+}
+
+// middleware
+pub async fn verify_key(
+    TypedHeader(Authorization(bearer)): TypedHeader<Authorization<Bearer>>,
+    request: Request,
+    next: Next,
+) -> Result<impl IntoResponse, StatusCode> {
+    if bearer.token() == KEY_TOKEN {
+        let response = next.run(request).await;
+        Ok(response)
+    } else {
+        Err(StatusCode::UNAUTHORIZED)
     }
 }
