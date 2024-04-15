@@ -25,7 +25,12 @@ use axum_extra::{
 };
 use sqlx::PgPool;
 use std::{collections::HashMap, time};
-use tower_http::{timeout::TimeoutLayer, trace::TraceLayer};
+use tower::ServiceBuilder;
+use tower_http::{
+    services::{ServeDir, ServeFile},
+    timeout::TimeoutLayer,
+    trace::TraceLayer,
+};
 
 #[tokio::main]
 async fn main() {
@@ -95,6 +100,15 @@ async fn main() {
             get(search.layer(middleware::from_fn(verify_signature))),
         )
         .route("/test", get(test.layer(middleware::from_fn(verify_key))))
+        // without middleware
+        // .nest_service("/assets", ServeDir::new("assets"))
+        // with middleware
+        .nest_service(
+            "/assets",
+            ServiceBuilder::new()
+                .layer(middleware::from_fn(verify_signature))
+                .service(ServeDir::new("assets")),
+        )
         .layer(TraceLayer::new_for_http())
         .layer(TimeoutLayer::new(time::Duration::from_secs(15)))
         .with_state(pool);
