@@ -4,13 +4,13 @@ use app_789plates_server::{
         change_password, check_availability_email, check_verification_code, create_new_account,
         forgot_password, reset_password, sign_in, verify_key, Authentication,
     },
-    graceful_shutdown::shutdown_signal,
     jwt::{renew_token, verify_signature},
     profile::{edit_information, edit_name, edit_profile_picture},
+    shutdown_signal::shutdown_signal,
 };
 use axum::{
     body::{Body, Bytes},
-    extract::{Query, Request},
+    extract::{DefaultBodyLimit, Query, Request},
     handler::Handler,
     http::StatusCode,
     middleware::{self, Next},
@@ -25,6 +25,7 @@ use axum_extra::{
 };
 use sqlx::PgPool;
 use std::{collections::HashMap, time};
+use tokio::fs;
 use tower::ServiceBuilder;
 use tower_http::{
     services::{ServeDir, ServeFile},
@@ -99,6 +100,11 @@ async fn main() {
             "/search",
             get(search.layer(middleware::from_fn(verify_signature))),
         )
+        .route(
+            "/test_bytes",
+            post(test_bytes.layer(DefaultBodyLimit::max(5242880))),
+        )
+        // .route("/test_bytes", post(test_bytes))
         .route("/test", get(test.layer(middleware::from_fn(verify_key))))
         // without middleware
         // .nest_service("/assets", ServeDir::new("assets"))
@@ -134,6 +140,14 @@ async fn search(
     match params.get("query") {
         Some(query) => Ok(query.to_string().to_uppercase()),
         None => Err(StatusCode::BAD_REQUEST),
+    }
+}
+
+async fn test_bytes(body: Bytes) -> Result<impl IntoResponse, StatusCode> {
+    let write_result = fs::write("assets/test.jpg", body).await;
+    match write_result {
+        Ok(_) => Ok(()),
+        Err(_) => Err(StatusCode::INTERNAL_SERVER_ERROR),
     }
 }
 
