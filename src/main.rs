@@ -112,7 +112,7 @@ async fn main() {
         .nest_service(
             "/assets",
             ServiceBuilder::new()
-                .layer(middleware::from_fn(verify_signature))
+                .layer(middleware::from_fn(verify_key))
                 .service(ServeDir::new("assets")),
         )
         .layer(TraceLayer::new_for_http())
@@ -143,11 +143,19 @@ async fn search(
     }
 }
 
-async fn test_bytes(body: Bytes) -> Result<impl IntoResponse, StatusCode> {
-    let write_result = fs::write("assets/test.jpg", body).await;
-    match write_result {
-        Ok(_) => Ok(()),
-        Err(_) => Err(StatusCode::INTERNAL_SERVER_ERROR),
+async fn test_bytes(
+    Query(params): Query<HashMap<String, String>>,
+    body: Bytes,
+) -> Result<impl IntoResponse, StatusCode> {
+    match params.get("file_name") {
+        Some(file_name) => {
+            let write_result = fs::write(format!("assets/{}", file_name), body).await;
+            match write_result {
+                Ok(_) => Ok(file_name.to_string()),
+                Err(_) => Err(StatusCode::INTERNAL_SERVER_ERROR),
+            }
+        }
+        None => Err(StatusCode::BAD_REQUEST),
     }
 }
 
