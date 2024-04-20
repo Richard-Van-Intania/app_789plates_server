@@ -4,9 +4,7 @@ use lettre::{
     Message, SmtpTransport, Transport,
 };
 
-pub const EMAIL: &'static str = "pu.van.intania@gmail.com";
-pub const PASSWORD: &'static str = "pcma cjfo slth uhti";
-pub const MINUTES: i64 = 10;
+use crate::constants::{EMAIL, MINUTES, PASSWORD};
 
 pub fn send_email(email: &str, reference: i32, code: i32) -> Result<Response, Error> {
     let creds = Credentials::new(EMAIL.to_string(), PASSWORD.to_string());

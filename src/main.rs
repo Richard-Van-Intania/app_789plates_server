@@ -6,7 +6,7 @@ use app_789plates_server::{
     },
     jwt::{renew_token, verify_signature},
     profile::{edit_information, edit_name, edit_profile_picture},
-    shutdown_signal::shutdown_signal,
+    shutdown::shutdown_signal,
 };
 use axum::{
     body::{Body, Bytes},

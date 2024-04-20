@@ -17,8 +17,12 @@ use serde::{Deserialize, Serialize};
 use sqlx::PgPool;
 
 use crate::{
-    jwt::{Claims, Token, ACCESS_TOKEN_KEY, ISSUER, REFRESH_TOKEN_KEY},
-    mailer::{send_email, MINUTES},
+    constants::{
+        ACCESS_TOKEN_KEY, ISSUER, KEY_TOKEN, MINUTES, NULL_ALIAS_INT, NULL_ALIAS_STRING,
+        REFRESH_TOKEN_KEY,
+    },
+    jwt::Claims,
+    mailer::send_email,
 };
 
 #[derive(Debug, Deserialize, Serialize)]
@@ -79,10 +83,6 @@ pub struct Authentication {
     pub refresh_token: String,
     pub users_id: i32,
 }
-
-pub const NULL_ALIAS_STRING: &'static str = "null";
-pub const NULL_ALIAS_INT: i32 = 0;
-pub const KEY_TOKEN: &'static str = "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJhcHA3ODlwbGF0ZXMiLCJzdWIiOiIxNiIsImV4cCI6MTcxMzU0MDM5NywiaWF0IjoxNzEyMzMwNzk3fQ.bXU1LaEGV7oH4YA3Kqtqsb5LydWQAgRHZiJpg30nd24";
 
 pub async fn check_availability_email(
     State(pool): State<PgPool>,

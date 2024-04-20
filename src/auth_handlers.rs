@@ -3,8 +3,9 @@ use crate::{
         AddSecondaryEmail, ChangePassword, CreateNewAccount, Email, SignIn, VerificationCode,
         VerificationRes,
     },
-    jwt::{Claims, Token, ACCESS_TOKEN_KEY, ISSUER, REFRESH_TOKEN_KEY},
-    mailer::{send_email, MINUTES},
+    constants::{ACCESS_TOKEN_KEY, ISSUER, MINUTES, REFRESH_TOKEN_KEY},
+    jwt::{Claims, Token},
+    mailer::send_email,
 };
 use axum::{extract::State, http::StatusCode, response::IntoResponse, Json};
 use chrono::{DateTime, Duration, Utc};

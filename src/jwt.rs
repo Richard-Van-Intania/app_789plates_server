@@ -7,11 +7,10 @@ use chrono::{Duration, Utc};
 use jsonwebtoken::{decode, encode, DecodingKey, EncodingKey, Header, TokenData, Validation};
 use serde::{Deserialize, Serialize};
 
-use crate::authentication::{Authentication, NULL_ALIAS_INT, NULL_ALIAS_STRING};
-
-pub const ACCESS_TOKEN_KEY: &'static str = "618C654BBBF31A6D315BA7AB8AB2A";
-pub const REFRESH_TOKEN_KEY: &'static str = "D586891172B4BFC6AD15B449DB593";
-pub const ISSUER: &'static str = "app789plates";
+use crate::{
+    authentication::Authentication,
+    constants::{ACCESS_TOKEN_KEY, ISSUER, NULL_ALIAS_INT, NULL_ALIAS_STRING, REFRESH_TOKEN_KEY},
+};
 
 #[derive(Serialize, Deserialize)]
 pub struct Claims {
