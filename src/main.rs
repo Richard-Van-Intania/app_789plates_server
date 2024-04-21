@@ -5,7 +5,7 @@ use app_789plates_server::{
         forgot_password, reset_password, sign_in, verify_key, Authentication,
     },
     jwt::{renew_token, verify_signature},
-    middleware::verify_email_middleware,
+    middleware::validate_email,
     profile::{edit_information, edit_name, edit_profile_picture},
     shutdown::shutdown_signal,
 };
@@ -109,7 +109,7 @@ async fn main() {
         )
         .route(
             "/root",
-            get(root.layer(middleware::from_fn(verify_email_middleware))),
+            get(root.layer(middleware::from_fn(validate_email))),
         )
         // .route("/test_bytes", post(test_bytes))
         .route("/test", get(test.layer(middleware::from_fn(verify_key))))

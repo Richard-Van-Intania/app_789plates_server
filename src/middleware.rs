@@ -4,12 +4,9 @@ use hyper::StatusCode;
 
 use crate::authentication::Authentication;
 
-pub async fn verify_email_middleware(
-    request: Request,
-    next: Next,
-) -> Result<impl IntoResponse, StatusCode> {
+pub async fn validate_email(request: Request, next: Next) -> Result<impl IntoResponse, StatusCode> {
     let (parts, body) = request.into_parts();
-    let bytes = to_bytes(body, usize::MAX).await;
+    let bytes = to_bytes(body, 5242880).await;
     match bytes {
         Ok(bytes) => {
             let json = Json::<Authentication>::from_bytes(&bytes);
