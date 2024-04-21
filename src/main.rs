@@ -5,12 +5,13 @@ use app_789plates_server::{
         forgot_password, reset_password, sign_in, verify_key, Authentication,
     },
     jwt::{renew_token, verify_signature},
+    middleware::verify_email_middleware,
     profile::{edit_information, edit_name, edit_profile_picture},
     shutdown::shutdown_signal,
 };
 use axum::{
-    body::{Body, Bytes},
-    extract::{DefaultBodyLimit, Query, Request},
+    body::{to_bytes, Body, Bytes},
+    extract::{DefaultBodyLimit, FromRef, Query, Request},
     handler::Handler,
     http::StatusCode,
     middleware::{self, Next},
@@ -23,8 +24,10 @@ use axum_extra::{
     headers::{authorization::Bearer, Authorization},
     TypedHeader,
 };
+use email_address::EmailAddress;
+use http_body_util::BodyExt;
 use sqlx::PgPool;
-use std::{collections::HashMap, time};
+use std::{array::from_ref, collections::HashMap, time};
 use tokio::fs;
 use tower::ServiceBuilder;
 use tower_http::{
@@ -104,6 +107,10 @@ async fn main() {
             "/test_bytes",
             post(test_bytes.layer(DefaultBodyLimit::max(5242880))),
         )
+        .route(
+            "/root",
+            get(root.layer(middleware::from_fn(verify_email_middleware))),
+        )
         // .route("/test_bytes", post(test_bytes))
         .route("/test", get(test.layer(middleware::from_fn(verify_key))))
         // without middleware
@@ -125,7 +132,8 @@ async fn main() {
         .unwrap();
 }
 
-async fn root() -> Result<impl IntoResponse, StatusCode> {
+async fn root(Json(payload): Json<Authentication>) -> Result<impl IntoResponse, StatusCode> {
+    println!("{:#?}", payload);
     Ok(())
 }
 
@@ -173,3 +181,25 @@ async fn test_bytes(
 // fetch profile
 
 // impl IntoResponse
+
+async fn my_middleware(request: Request, next: Next) -> Response {
+    let (parts, body) = request.into_parts();
+
+    let bytes = to_bytes(body, usize::MAX).await.unwrap();
+
+    let Json(mut payload) = Json::<Authentication>::from_bytes(&bytes).unwrap();
+
+    // println!("{:#?}", payload);
+
+    payload.email = payload.email.to_lowercase();
+
+    let body = Json(payload).into_response().into_body();
+
+    let req = Request::from_parts(parts, body);
+
+    let response = next.run(req).await;
+
+    // do something with `response`...
+
+    response
+}

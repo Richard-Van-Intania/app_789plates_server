@@ -47,3 +47,7 @@ StatusCode::INTERNAL_SERVER_ERROR
 use refresh token as id
 
 search log db
+
+
+println!("rect1 is {:?}", rect1);
+println!("rect1 is {:#?}", rect1);
