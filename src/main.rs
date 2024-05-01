@@ -5,7 +5,7 @@ use app_789plates_server::{
         forgot_password, reset_password, sign_in, Authentication,
     },
     jwt::renew_token,
-    middleware::{validate_api_key, validate_email, validate_email_already_use, verify_signature},
+    middleware::{check_email_already_use, validate_api_key, validate_email, verify_signature},
     profile::{edit_information, edit_name, edit_profile_picture},
     shutdown::shutdown_signal,
 };
@@ -53,7 +53,7 @@ async fn main() {
                         .layer(middleware::from_fn(validate_email))
                         .layer(middleware::from_fn_with_state(
                             pool.clone(),
-                            validate_email_already_use,
+                            check_email_already_use,
                         )),
                 ),
             ),
@@ -71,7 +71,7 @@ async fn main() {
                         .layer(middleware::from_fn(validate_email))
                         .layer(middleware::from_fn_with_state(
                             pool.clone(),
-                            validate_email_already_use,
+                            check_email_already_use,
                         )),
                 ),
             ),
@@ -146,7 +146,7 @@ async fn main() {
             "/root",
             get(root.layer(middleware::from_fn_with_state(
                 pool.clone(),
-                validate_email_already_use,
+                check_email_already_use,
             ))),
         )
         .route(

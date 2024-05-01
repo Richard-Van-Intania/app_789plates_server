@@ -65,7 +65,7 @@ pub async fn validate_email(request: Request, next: Next) -> Result<impl IntoRes
     }
 }
 
-pub async fn validate_email_already_use(
+pub async fn check_email_already_use(
     State(pool): State<PgPool>,
     request: Request,
     next: Next,
