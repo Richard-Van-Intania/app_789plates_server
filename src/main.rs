@@ -24,11 +24,12 @@ use axum_extra::{
     headers::{authorization::Bearer, Authorization},
     TypedHeader,
 };
+use chrono::Local;
 use email_address::EmailAddress;
 use http_body_util::BodyExt;
 use sqlx::PgPool;
 use std::{array::from_ref, collections::HashMap, time};
-use tokio::fs;
+use tokio::{fs, time::sleep};
 use tower::ServiceBuilder;
 use tower_http::{
     services::{ServeDir, ServeFile},
@@ -108,6 +109,14 @@ async fn main() {
             post(test_bytes.layer(DefaultBodyLimit::max(5242880))),
         )
         .route(
+            "/test_order",
+            get(test.layer(
+                ServiceBuilder::new()
+                    .layer(middleware::from_fn(my_middleware1))
+                    .layer(middleware::from_fn(my_middleware2)),
+            )),
+        )
+        .route(
             "/root",
             get(root.layer(middleware::from_fn_with_state(
                 pool.clone(),
@@ -141,6 +150,7 @@ async fn root(Json(payload): Json<Authentication>) -> Result<impl IntoResponse, 
 }
 
 async fn test() -> Result<impl IntoResponse, StatusCode> {
+    println!("hello from test at {}", Local::now());
     Ok(())
 }
 
@@ -185,7 +195,7 @@ async fn test_bytes(
 
 // impl IntoResponse
 
-async fn my_middleware(request: Request, next: Next) -> Response {
+async fn my_middleware0(request: Request, next: Next) -> Response {
     let (parts, body) = request.into_parts();
 
     let bytes = to_bytes(body, usize::MAX).await.unwrap();
@@ -203,6 +213,34 @@ async fn my_middleware(request: Request, next: Next) -> Response {
     let response = next.run(req).await;
 
     // do something with `response`...
+
+    response
+}
+
+async fn my_middleware1(request: Request, next: Next) -> Response {
+    // do something with `request`...
+    println!("hello from my_middleware1 in at {}", Local::now());
+    sleep(time::Duration::from_secs(1)).await;
+
+    let response = next.run(request).await;
+
+    // do something with `response`...
+    println!("hello from my_middleware1  out at {}", Local::now());
+    sleep(time::Duration::from_secs(1)).await;
+
+    response
+}
+
+async fn my_middleware2(request: Request, next: Next) -> Response {
+    // do something with `request`...
+    println!("hello from my_middleware2 in at {}", Local::now());
+    sleep(time::Duration::from_secs(1)).await;
+
+    let response = next.run(request).await;
+
+    // do something with `response`...
+    println!("hello from my_middleware2  out at {}", Local::now());
+    sleep(time::Duration::from_secs(1)).await;
 
     response
 }
