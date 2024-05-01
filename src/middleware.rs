@@ -1,6 +1,9 @@
 use std::collections::HashMap;
 
-use crate::{authentication::Authentication, constants::API_KEY};
+use crate::{
+    authentication::Authentication,
+    constants::{API_KEY, LIMIT},
+};
 use axum::{
     body::to_bytes,
     extract::{Query, Request, State},
@@ -12,9 +15,10 @@ use email_address::EmailAddress;
 use hyper::StatusCode;
 use sqlx::PgPool;
 
+// done
 pub async fn validate_email(request: Request, next: Next) -> Result<impl IntoResponse, StatusCode> {
     let (parts, body) = request.into_parts();
-    let bytes = to_bytes(body, 5242880).await;
+    let bytes = to_bytes(body, LIMIT).await;
     match bytes {
         Ok(bytes) => {
             let json = Json::<Authentication>::from_bytes(&bytes);
@@ -84,5 +88,44 @@ pub async fn validate_api_key(
             }
         }
         None => Err(StatusCode::BAD_REQUEST),
+    }
+}
+
+pub async fn validate_email_already_use(
+    State(pool): State<PgPool>,
+    request: Request,
+    next: Next,
+) -> Result<impl IntoResponse, StatusCode> {
+    let (parts, body) = request.into_parts();
+    let bytes = to_bytes(body, LIMIT).await;
+    match bytes {
+        Ok(bytes) => {
+            let json = Json::<Authentication>::from_bytes(&bytes);
+            match json {
+                Ok(Json(payload)) => {
+                    let fetch_email = sqlx::query(
+                        "SELECT users_id FROM public.users WHERE (primary_email = $1 OR secondary_email = $2)",
+                    )
+                    .bind(&payload.email)
+                    .bind(&payload.email)
+                    .fetch_all(&pool)
+                    .await;
+                    if let Ok(rows) = fetch_email {
+                        if rows.is_empty() {
+                            let body = Json(payload).into_response().into_body();
+                            let req = Request::from_parts(parts, body);
+                            let response = next.run(req).await;
+                            Ok(response)
+                        } else {
+                            Err(StatusCode::CONFLICT)
+                        }
+                    } else {
+                        Err(StatusCode::INTERNAL_SERVER_ERROR)
+                    }
+                }
+                Err(_) => Err(StatusCode::BAD_REQUEST),
+            }
+        }
+        Err(_) => Err(StatusCode::BAD_REQUEST),
     }
 }

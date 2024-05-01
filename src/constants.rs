@@ -10,3 +10,5 @@ pub const NULL_ALIAS_STRING: &'static str = "null";
 pub const NULL_ALIAS_INT: i32 = 0;
 pub const KEY_TOKEN: &'static str = "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJhcHA3ODlwbGF0ZXMiLCJzdWIiOiIxNiIsImV4cCI6MTcxMzU0MDM5NywiaWF0IjoxNzEyMzMwNzk3fQ.bXU1LaEGV7oH4YA3Kqtqsb5LydWQAgRHZiJpg30nd24";
 pub const API_KEY: &'static str = "A46442B3454C93571153AB45137A2";
+
+pub const LIMIT: usize = 5242880;
