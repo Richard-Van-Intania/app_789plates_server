@@ -46,11 +46,21 @@ async fn main() {
         .route("/", get(|| async {}))
         .route(
             "/checkavailabilityemail",
-            post(check_availability_email.layer(middleware::from_fn(verify_key))),
+            post(
+                check_availability_email.layer(
+                    ServiceBuilder::new()
+                        .layer(middleware::from_fn(validate_api_key))
+                        .layer(middleware::from_fn(validate_email))
+                        .layer(middleware::from_fn_with_state(
+                            pool.clone(),
+                            validate_email_already_use,
+                        )),
+                ),
+            ),
         )
         .route(
             "/checkverificationcode",
-            post(check_verification_code.layer(middleware::from_fn(verify_key))),
+            post(check_verification_code.layer(middleware::from_fn(validate_api_key))),
         )
         .route(
             "/createnewaccount",
