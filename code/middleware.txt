@@ -26,16 +26,14 @@ async fn my_middleware2(request: Request, next: Next) -> Response {
     response
 }
 
-async fn my_middleware3(request: Request, next: Next) -> Response {
+pub async fn my_middleware(request: Request, next: Next) -> Result<impl IntoResponse, StatusCode> {
     // do something with `request`...
-    // request turn
 
     let response = next.run(request).await;
 
     // do something with `response`...
-    // response turn
 
-    response
+    Ok(response)
 }
 
 async fn validate_email(request: Request, next: Next) -> Response {

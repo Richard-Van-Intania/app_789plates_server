@@ -1,7 +1,9 @@
-use crate::authentication::Authentication;
+use std::collections::HashMap;
+
+use crate::{authentication::Authentication, constants::API_KEY};
 use axum::{
     body::to_bytes,
-    extract::{Request, State},
+    extract::{Query, Request, State},
     middleware::Next,
     response::IntoResponse,
     Json,
@@ -63,5 +65,24 @@ pub async fn validate_email_s(
             }
         }
         Err(_) => Err(StatusCode::BAD_REQUEST),
+    }
+}
+
+// done
+pub async fn validate_api_key(
+    Query(params): Query<HashMap<String, String>>,
+    request: Request,
+    next: Next,
+) -> Result<impl IntoResponse, StatusCode> {
+    match params.get("api_key") {
+        Some(api_key) => {
+            if api_key == API_KEY {
+                let response = next.run(request).await;
+                Ok(response)
+            } else {
+                Err(StatusCode::BAD_REQUEST)
+            }
+        }
+        None => Err(StatusCode::BAD_REQUEST),
     }
 }

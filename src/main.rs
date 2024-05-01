@@ -5,13 +5,13 @@ use app_789plates_server::{
         forgot_password, reset_password, sign_in, verify_key, Authentication,
     },
     jwt::{renew_token, verify_signature},
-    middleware::{validate_email, validate_email_s},
+    middleware::{validate_api_key, validate_email, validate_email_s},
     profile::{edit_information, edit_name, edit_profile_picture},
     shutdown::shutdown_signal,
 };
 use axum::{
     body::{to_bytes, Body, Bytes},
-    extract::{DefaultBodyLimit, FromRef, Query, Request},
+    extract::{DefaultBodyLimit, FromRef, Query, Request, State},
     handler::Handler,
     http::StatusCode,
     middleware::{self, Next},
@@ -113,7 +113,7 @@ async fn main() {
             get(test.layer(
                 ServiceBuilder::new()
                     .layer(middleware::from_fn(my_middleware1))
-                    .layer(middleware::from_fn(my_middleware2)),
+                    .layer(middleware::from_fn_with_state(pool.clone(), my_middleware2)),
             )),
         )
         .route(
@@ -123,8 +123,12 @@ async fn main() {
                 validate_email_s,
             ))),
         )
+        .route(
+            "/test",
+            get(test.layer(ServiceBuilder::new().layer(middleware::from_fn(validate_api_key)))),
+        )
         // .route("/test_bytes", post(test_bytes))
-        .route("/test", get(test.layer(middleware::from_fn(verify_key))))
+        // .route("/test", get(test.layer(middleware::from_fn(verify_key))))
         // without middleware
         // .nest_service("/assets", ServeDir::new("assets"))
         // with middleware
@@ -231,7 +235,13 @@ async fn my_middleware1(request: Request, next: Next) -> Response {
     response
 }
 
-async fn my_middleware2(request: Request, next: Next) -> Response {
+async fn my_middleware2(
+    Query(params): Query<HashMap<String, String>>,
+    State(pool): State<PgPool>,
+    request: Request,
+    next: Next,
+) -> Response {
+    println!("params is {:?}", params);
     // do something with `request`...
     println!("hello from my_middleware2 in at {}", Local::now());
     sleep(time::Duration::from_secs(1)).await;
