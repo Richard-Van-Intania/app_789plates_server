@@ -26,25 +26,6 @@ pub struct Token {
     pub refresh_token: String,
 }
 
-pub async fn verify_signature(
-    TypedHeader(Authorization(bearer)): TypedHeader<Authorization<Bearer>>,
-    request: Request,
-    next: Next,
-) -> Result<impl IntoResponse, StatusCode> {
-    let token = decode::<Claims>(
-        bearer.token(),
-        &DecodingKey::from_secret(ACCESS_TOKEN_KEY.as_ref()),
-        &Validation::default(),
-    );
-    match token {
-        Ok(_) => {
-            let response = next.run(request).await;
-            Ok(response)
-        }
-        Err(_) => Err(StatusCode::UNAUTHORIZED),
-    }
-}
-
 pub async fn renew_token(
     Json(payload): Json<Authentication>,
 ) -> Result<Json<Authentication>, StatusCode> {

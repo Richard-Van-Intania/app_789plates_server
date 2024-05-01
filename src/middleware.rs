@@ -2,7 +2,8 @@ use std::collections::HashMap;
 
 use crate::{
     authentication::Authentication,
-    constants::{API_KEY, LIMIT},
+    constants::{ACCESS_TOKEN_KEY, API_KEY, LIMIT},
+    jwt::Claims,
 };
 use axum::{
     body::to_bytes,
@@ -11,8 +12,13 @@ use axum::{
     response::IntoResponse,
     Json,
 };
+use axum_extra::{
+    headers::{authorization::Bearer, Authorization},
+    TypedHeader,
+};
 use email_address::EmailAddress;
 use hyper::StatusCode;
+use jsonwebtoken::{decode, DecodingKey, Validation};
 use sqlx::PgPool;
 
 pub async fn validate_api_key(
@@ -95,5 +101,24 @@ pub async fn validate_email_already_use(
             }
         }
         Err(_) => Err(StatusCode::BAD_REQUEST),
+    }
+}
+
+pub async fn verify_signature(
+    TypedHeader(Authorization(bearer)): TypedHeader<Authorization<Bearer>>,
+    request: Request,
+    next: Next,
+) -> Result<impl IntoResponse, StatusCode> {
+    let token = decode::<Claims>(
+        bearer.token(),
+        &DecodingKey::from_secret(ACCESS_TOKEN_KEY.as_ref()),
+        &Validation::default(),
+    );
+    match token {
+        Ok(_) => {
+            let response = next.run(request).await;
+            Ok(response)
+        }
+        Err(_) => Err(StatusCode::UNAUTHORIZED),
     }
 }

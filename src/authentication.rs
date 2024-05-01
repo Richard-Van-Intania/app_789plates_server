@@ -18,46 +18,11 @@ use sqlx::PgPool;
 
 use crate::{
     constants::{
-        ACCESS_TOKEN_KEY, ISSUER, KEY_TOKEN, MINUTES, NULL_ALIAS_INT, NULL_ALIAS_STRING,
-        REFRESH_TOKEN_KEY,
+        ACCESS_TOKEN_KEY, ISSUER, MINUTES, NULL_ALIAS_INT, NULL_ALIAS_STRING, REFRESH_TOKEN_KEY,
     },
     jwt::Claims,
     mailer::send_email,
 };
-
-#[derive(Debug, Deserialize, Serialize)]
-pub struct Email {
-    pub email: String,
-}
-
-#[derive(Serialize)]
-pub struct VerificationRes {
-    pub verification_id: i32,
-    pub email: String,
-    pub reference: i32,
-}
-
-#[derive(Deserialize)]
-pub struct VerificationCode {
-    pub verification_id: i32,
-    pub reference: i32,
-    pub code: i32,
-}
-
-#[derive(Deserialize)]
-pub struct CreateNewAccount {
-    pub verification_id: i32,
-    pub reference: i32,
-    pub code: i32,
-    pub email: String,
-    pub password: String,
-}
-
-#[derive(Deserialize)]
-pub struct SignIn {
-    pub email: String,
-    pub password: String,
-}
 
 #[derive(Deserialize)]
 pub struct ChangePassword {
@@ -84,7 +49,6 @@ pub struct Authentication {
     pub users_id: i32,
 }
 
-// done
 pub async fn check_availability_email(
     State(pool): State<PgPool>,
     Json(payload): Json<Authentication>,
@@ -127,7 +91,6 @@ pub async fn check_availability_email(
     }
 }
 
-// done
 // use both new account and forgot password
 pub async fn check_verification_code(
     State(pool): State<PgPool>,
@@ -180,105 +143,83 @@ pub async fn create_new_account(
     State(pool): State<PgPool>,
     Json(payload): Json<Authentication>,
 ) -> Result<Json<Authentication>, StatusCode> {
-    let email = payload.email.trim().to_lowercase();
-    let valid = EmailAddress::is_valid(&email);
+    let email = payload.email;
     let password = payload.password;
-    if valid && !password.is_empty() {
-        let fetch_email = sqlx::query(
-            "SELECT users_id FROM public.users WHERE (primary_email = $1 OR secondary_email = $2)",
-        )
-        .bind(&email)
-        .bind(&email)
-        .fetch_all(&pool)
-        .await;
-        match fetch_email {
-            Ok(rows) => {
-                if rows.is_empty() {
-                    let fetch_code: Result<Option<(i32,)>,  sqlx::Error> = sqlx::query_as(
-                        "SELECT verification_id FROM public.verification WHERE (verification_id = $1 AND reference = $2 AND code = $3 AND verified = true)",
-                    )
-                    .bind(payload.verification_id)
-                    .bind(payload.reference)
-                    .bind(payload.code)
-                    .fetch_optional(&pool)
-                    .await;
-                    match fetch_code {
-                        Ok(ok) => match ok {
-                            Some(_) => {
-                                let date = Utc::now();
-                                let insert_user: Result<(i32,), sqlx::Error> = sqlx::query_as(
-                                    "INSERT INTO public.users (name, primary_email, password, created_date) VALUES ($1, $2, $3, $4) RETURNING users_id",
-                                )
-                                .bind(*email.split("@").collect::<Vec<&str>>().get(0).unwrap())
-                                .bind(&email)
-                                .bind(blake3::hash(password.as_bytes()).to_string())
-                                .bind(date)
-                                .fetch_one(&pool)
-                                .await;
-                                match insert_user {
-                                    Ok((users_id,)) => {
-                                        let access_claims = Claims {
-                                            iat: date.timestamp() as usize,
-                                            exp: (date + Duration::minutes(60)).timestamp()
-                                                as usize,
-                                            iss: ISSUER.to_string(),
-                                            sub: users_id.to_string(),
-                                        };
-                                        let refresh_claims = Claims {
-                                            iat: date.timestamp() as usize,
-                                            exp: (date + Duration::days(14)).timestamp() as usize,
-                                            iss: ISSUER.to_string(),
-                                            sub: users_id.to_string(),
-                                        };
-                                        let access_token = encode(
-                                            &Header::default(),
-                                            &access_claims,
-                                            &EncodingKey::from_secret(ACCESS_TOKEN_KEY.as_ref()),
-                                        );
-                                        let refresh_token = encode(
-                                            &Header::default(),
-                                            &refresh_claims,
-                                            &EncodingKey::from_secret(REFRESH_TOKEN_KEY.as_ref()),
-                                        );
-                                        Ok(Json(Authentication {
-                                            verification_id: NULL_ALIAS_INT,
-                                            reference: NULL_ALIAS_INT,
-                                            code: NULL_ALIAS_INT,
-                                            email,
-                                            secondary_email: NULL_ALIAS_STRING.to_string(),
-                                            password,
-                                            access_token: access_token.unwrap(),
-                                            refresh_token: refresh_token.unwrap(),
-                                            users_id,
-                                        }))
-                                    }
-                                    Err(_) => Err(StatusCode::INTERNAL_SERVER_ERROR),
-                                }
-                            }
-                            None => Err(StatusCode::BAD_REQUEST),
-                        },
-                        Err(_) => Err(StatusCode::INTERNAL_SERVER_ERROR),
+    let fetch_code: Result<Option<(i32,)>,  sqlx::Error> = sqlx::query_as(
+        "SELECT verification_id FROM public.verification WHERE (verification_id = $1 AND reference = $2 AND code = $3 AND verified = true)",
+    )
+    .bind(payload.verification_id)
+    .bind(payload.reference)
+    .bind(payload.code)
+    .fetch_optional(&pool)
+    .await;
+    match fetch_code {
+        Ok(ok) => match ok {
+            Some(_) => {
+                let date = Utc::now();
+                let insert_user: Result<(i32,), sqlx::Error> = sqlx::query_as(
+                    "INSERT INTO public.users (name, primary_email, password, created_date, latest_sign_in) VALUES ($1, $2, $3, $4, $5) RETURNING users_id",
+                )
+                .bind(*email.split("@").collect::<Vec<&str>>().get(0).unwrap())
+                .bind(&email)
+                .bind(blake3::hash(password.as_bytes()).to_string())
+                .bind(date)
+                .bind(date)
+                .fetch_one(&pool)
+                .await;
+                match insert_user {
+                    Ok((users_id,)) => {
+                        let access_claims = Claims {
+                            iat: date.timestamp() as usize,
+                            exp: (date + Duration::minutes(60)).timestamp() as usize,
+                            iss: ISSUER.to_string(),
+                            sub: users_id.to_string(),
+                        };
+                        let refresh_claims = Claims {
+                            iat: date.timestamp() as usize,
+                            exp: (date + Duration::days(14)).timestamp() as usize,
+                            iss: ISSUER.to_string(),
+                            sub: users_id.to_string(),
+                        };
+                        let access_token = encode(
+                            &Header::default(),
+                            &access_claims,
+                            &EncodingKey::from_secret(ACCESS_TOKEN_KEY.as_ref()),
+                        );
+                        let refresh_token = encode(
+                            &Header::default(),
+                            &refresh_claims,
+                            &EncodingKey::from_secret(REFRESH_TOKEN_KEY.as_ref()),
+                        );
+                        Ok(Json(Authentication {
+                            verification_id: NULL_ALIAS_INT,
+                            reference: NULL_ALIAS_INT,
+                            code: NULL_ALIAS_INT,
+                            email,
+                            secondary_email: NULL_ALIAS_STRING.to_string(),
+                            password,
+                            access_token: access_token.unwrap(),
+                            refresh_token: refresh_token.unwrap(),
+                            users_id,
+                        }))
                     }
-                } else {
-                    Err(StatusCode::BAD_REQUEST)
+                    Err(_) => Err(StatusCode::INTERNAL_SERVER_ERROR),
                 }
             }
-            Err(_) => Err(StatusCode::INTERNAL_SERVER_ERROR),
-        }
-    } else {
-        Err(StatusCode::BAD_REQUEST)
+            None => Err(StatusCode::BAD_REQUEST),
+        },
+        Err(_) => Err(StatusCode::INTERNAL_SERVER_ERROR),
     }
 }
 
+// here
 pub async fn sign_in(
     State(pool): State<PgPool>,
     Json(payload): Json<Authentication>,
 ) -> Result<Json<Authentication>, StatusCode> {
-    let email = payload.email.trim().to_lowercase();
-    let valid = EmailAddress::is_valid(&email);
+    let email = payload.email;
     let password = payload.password;
-    if valid && !password.is_empty() {
-        let fetch_users_id: Result<Option<(i32,String)>, sqlx::Error> = sqlx::query_as(
+    let fetch_users_id: Result<Option<(i32,String)>, sqlx::Error> = sqlx::query_as(
             "SELECT users_id, primary_email FROM public.users WHERE (primary_email = $1 OR secondary_email = $2) AND password = $3",
         )
         .bind(&email)
@@ -286,50 +227,48 @@ pub async fn sign_in(
         .bind(blake3::hash(password.as_bytes()).to_string())
         .fetch_optional(&pool)
         .await;
-        if let Ok(opt_users_id) = fetch_users_id {
-            if let Some((users_id, primary_email)) = opt_users_id {
-                let date = Utc::now();
-                let access_claims = Claims {
-                    iat: date.timestamp() as usize,
-                    exp: (date + Duration::minutes(60)).timestamp() as usize,
-                    iss: ISSUER.to_string(),
-                    sub: users_id.to_string(),
-                };
-                let refresh_claims = Claims {
-                    iat: date.timestamp() as usize,
-                    exp: (date + Duration::days(14)).timestamp() as usize,
-                    iss: ISSUER.to_string(),
-                    sub: users_id.to_string(),
-                };
-                let access_token = encode(
-                    &Header::default(),
-                    &access_claims,
-                    &EncodingKey::from_secret(ACCESS_TOKEN_KEY.as_ref()),
-                );
-                let refresh_token = encode(
-                    &Header::default(),
-                    &refresh_claims,
-                    &EncodingKey::from_secret(REFRESH_TOKEN_KEY.as_ref()),
-                );
-                Ok(Json(Authentication {
-                    verification_id: NULL_ALIAS_INT,
-                    reference: NULL_ALIAS_INT,
-                    code: NULL_ALIAS_INT,
-                    email: primary_email,
-                    secondary_email: NULL_ALIAS_STRING.to_string(),
-                    password,
-                    access_token: access_token.unwrap(),
-                    refresh_token: refresh_token.unwrap(),
-                    users_id,
-                }))
-            } else {
-                Err(StatusCode::BAD_REQUEST)
-            }
+    if let Ok(opt_users_id) = fetch_users_id {
+        if let Some((users_id, primary_email)) = opt_users_id {
+            let date = Utc::now();
+            // update latest_sign_in
+            let access_claims = Claims {
+                iat: date.timestamp() as usize,
+                exp: (date + Duration::minutes(60)).timestamp() as usize,
+                iss: ISSUER.to_string(),
+                sub: users_id.to_string(),
+            };
+            let refresh_claims = Claims {
+                iat: date.timestamp() as usize,
+                exp: (date + Duration::days(14)).timestamp() as usize,
+                iss: ISSUER.to_string(),
+                sub: users_id.to_string(),
+            };
+            let access_token = encode(
+                &Header::default(),
+                &access_claims,
+                &EncodingKey::from_secret(ACCESS_TOKEN_KEY.as_ref()),
+            );
+            let refresh_token = encode(
+                &Header::default(),
+                &refresh_claims,
+                &EncodingKey::from_secret(REFRESH_TOKEN_KEY.as_ref()),
+            );
+            Ok(Json(Authentication {
+                verification_id: NULL_ALIAS_INT,
+                reference: NULL_ALIAS_INT,
+                code: NULL_ALIAS_INT,
+                email: primary_email,
+                secondary_email: NULL_ALIAS_STRING.to_string(),
+                password,
+                access_token: access_token.unwrap(),
+                refresh_token: refresh_token.unwrap(),
+                users_id,
+            }))
         } else {
-            Err(StatusCode::INTERNAL_SERVER_ERROR)
+            Err(StatusCode::BAD_REQUEST)
         }
     } else {
-        Err(StatusCode::BAD_REQUEST)
+        Err(StatusCode::INTERNAL_SERVER_ERROR)
     }
 }
 
@@ -500,19 +439,5 @@ pub async fn change_password(
         }
     } else {
         StatusCode::UNAUTHORIZED
-    }
-}
-
-// middleware
-pub async fn verify_key(
-    TypedHeader(Authorization(bearer)): TypedHeader<Authorization<Bearer>>,
-    request: Request,
-    next: Next,
-) -> Result<impl IntoResponse, StatusCode> {
-    if bearer.token() == KEY_TOKEN {
-        let response = next.run(request).await;
-        Ok(response)
-    } else {
-        Err(StatusCode::UNAUTHORIZED)
     }
 }

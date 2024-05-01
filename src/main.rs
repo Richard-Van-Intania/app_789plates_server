@@ -2,10 +2,10 @@ use app_789plates_server::{
     auth_handlers::{add_secondary_email, delete_account},
     authentication::{
         change_password, check_availability_email, check_verification_code, create_new_account,
-        forgot_password, reset_password, sign_in, verify_key, Authentication,
+        forgot_password, reset_password, sign_in, Authentication,
     },
-    jwt::{renew_token, verify_signature},
-    middleware::{validate_api_key, validate_email, validate_email_already_use},
+    jwt::renew_token,
+    middleware::{validate_api_key, validate_email, validate_email_already_use, verify_signature},
     profile::{edit_information, edit_name, edit_profile_picture},
     shutdown::shutdown_signal,
 };
@@ -64,23 +64,39 @@ async fn main() {
         )
         .route(
             "/createnewaccount",
-            post(create_new_account.layer(middleware::from_fn(verify_key))),
+            post(
+                create_new_account.layer(
+                    ServiceBuilder::new()
+                        .layer(middleware::from_fn(validate_api_key))
+                        .layer(middleware::from_fn(validate_email))
+                        .layer(middleware::from_fn_with_state(
+                            pool.clone(),
+                            validate_email_already_use,
+                        )),
+                ),
+            ),
         )
         .route(
             "/signin",
-            post(sign_in.layer(middleware::from_fn(verify_key))),
+            post(
+                sign_in.layer(
+                    ServiceBuilder::new()
+                        .layer(middleware::from_fn(validate_api_key))
+                        .layer(middleware::from_fn(validate_email)),
+                ),
+            ),
         )
         .route(
             "/forgotpassword",
-            post(forgot_password.layer(middleware::from_fn(verify_key))),
+            post(forgot_password.layer(middleware::from_fn(validate_api_key))),
         )
         .route(
             "/resetpassword",
-            put(reset_password.layer(middleware::from_fn(verify_key))),
+            put(reset_password.layer(middleware::from_fn(validate_api_key))),
         )
         .route(
             "/renewtoken",
-            post(renew_token.layer(middleware::from_fn(verify_key))),
+            post(renew_token.layer(middleware::from_fn(validate_api_key))),
         )
         // here
         .route(
@@ -145,7 +161,7 @@ async fn main() {
         .nest_service(
             "/assets",
             ServiceBuilder::new()
-                .layer(middleware::from_fn(verify_key))
+                .layer(middleware::from_fn(validate_api_key))
                 .service(ServeDir::new("assets")),
         )
         .layer(TraceLayer::new_for_http())
@@ -160,6 +176,7 @@ async fn main() {
 
 async fn root(Json(payload): Json<Authentication>) -> Result<impl IntoResponse, StatusCode> {
     println!("{:#?}", payload);
+    println!("{:?}", payload);
     Ok(())
 }
 
