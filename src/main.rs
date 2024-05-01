@@ -5,7 +5,7 @@ use app_789plates_server::{
         forgot_password, reset_password, sign_in, verify_key, Authentication,
     },
     jwt::{renew_token, verify_signature},
-    middleware::{validate_api_key, validate_email, validate_email_s},
+    middleware::{validate_api_key, validate_email, validate_email_already_use},
     profile::{edit_information, edit_name, edit_profile_picture},
     shutdown::shutdown_signal,
 };
@@ -120,7 +120,7 @@ async fn main() {
             "/root",
             get(root.layer(middleware::from_fn_with_state(
                 pool.clone(),
-                validate_email_s,
+                validate_email_already_use,
             ))),
         )
         .route(
