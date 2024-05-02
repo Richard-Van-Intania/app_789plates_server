@@ -64,6 +64,35 @@ pub async fn validate_email(request: Request, next: Next) -> Result<impl IntoRes
     }
 }
 
+pub async fn validate_secondary_email(
+    request: Request,
+    next: Next,
+) -> Result<impl IntoResponse, StatusCode> {
+    let (parts, body) = request.into_parts();
+    let bytes = to_bytes(body, LIMIT).await;
+    match bytes {
+        Ok(bytes) => {
+            let json = Json::<Authentication>::from_bytes(&bytes);
+            match json {
+                Ok(Json(mut payload)) => {
+                    payload.secondary_email = payload.secondary_email.trim().to_lowercase();
+                    let valid = EmailAddress::is_valid(&payload.secondary_email);
+                    if valid {
+                        let body = Json(payload).into_response().into_body();
+                        let req = Request::from_parts(parts, body);
+                        let response = next.run(req).await;
+                        Ok(response)
+                    } else {
+                        Err(StatusCode::BAD_REQUEST)
+                    }
+                }
+                Err(_) => Err(StatusCode::BAD_REQUEST),
+            }
+        }
+        Err(_) => Err(StatusCode::BAD_REQUEST),
+    }
+}
+
 pub async fn check_email_already_use(
     State(pool): State<PgPool>,
     request: Request,
@@ -81,6 +110,45 @@ pub async fn check_email_already_use(
                     )
                     .bind(&payload.email)
                     .bind(&payload.email)
+                    .fetch_all(&pool)
+                    .await;
+                    if let Ok(rows) = fetch_email {
+                        if rows.is_empty() {
+                            let body = Json(payload).into_response().into_body();
+                            let req = Request::from_parts(parts, body);
+                            let response = next.run(req).await;
+                            Ok(response)
+                        } else {
+                            Err(StatusCode::CONFLICT)
+                        }
+                    } else {
+                        Err(StatusCode::INTERNAL_SERVER_ERROR)
+                    }
+                }
+                Err(_) => Err(StatusCode::BAD_REQUEST),
+            }
+        }
+        Err(_) => Err(StatusCode::BAD_REQUEST),
+    }
+}
+
+pub async fn check_secondary_email_already_use(
+    State(pool): State<PgPool>,
+    request: Request,
+    next: Next,
+) -> Result<impl IntoResponse, StatusCode> {
+    let (parts, body) = request.into_parts();
+    let bytes = to_bytes(body, LIMIT).await;
+    match bytes {
+        Ok(bytes) => {
+            let json = Json::<Authentication>::from_bytes(&bytes);
+            match json {
+                Ok(Json(payload)) => {
+                    let fetch_email = sqlx::query(
+                        "SELECT users_id FROM public.users WHERE (primary_email = $1 OR secondary_email = $2)",
+                    )
+                    .bind(&payload.secondary_email)
+                    .bind(&payload.secondary_email)
                     .fetch_all(&pool)
                     .await;
                     if let Ok(rows) = fetch_email {

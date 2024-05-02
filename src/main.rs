@@ -5,7 +5,10 @@ use app_789plates_server::{
         Authentication,
     },
     jwt::renew_token,
-    middleware::{check_email_already_use, validate_api_key, validate_email, verify_signature},
+    middleware::{
+        check_email_already_use, check_secondary_email_already_use, validate_api_key,
+        validate_email, validate_secondary_email, verify_signature,
+    },
     profile::{edit_information, edit_name, edit_profile_picture},
     shutdown::shutdown_signal,
 };
@@ -116,10 +119,19 @@ async fn main() {
                     .layer(middleware::from_fn(validate_email)),
             )),
         )
-        // here
         .route(
             "/addsecondaryemail",
-            post(add_secondary_email.layer(middleware::from_fn(verify_signature))),
+            post(
+                add_secondary_email.layer(
+                    ServiceBuilder::new()
+                        .layer(middleware::from_fn(verify_signature))
+                        .layer(middleware::from_fn(validate_secondary_email))
+                        .layer(middleware::from_fn_with_state(
+                            pool.clone(),
+                            check_secondary_email_already_use,
+                        )),
+                ),
+            ),
         )
         .route(
             "/deleteaccount",
