@@ -22,7 +22,6 @@ use axum::{
     routing::{delete, get, post, put},
     Json, Router,
 };
-
 use axum_extra::{
     headers::{authorization::Bearer, Authorization},
     TypedHeader,
