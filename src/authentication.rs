@@ -212,7 +212,6 @@ pub async fn create_new_account(
     }
 }
 
-// here
 pub async fn sign_in(
     State(pool): State<PgPool>,
     Json(payload): Json<Authentication>,
@@ -230,40 +229,50 @@ pub async fn sign_in(
     if let Ok(opt_users_id) = fetch_users_id {
         if let Some((users_id, primary_email)) = opt_users_id {
             let date = Utc::now();
-            // update latest_sign_in
-            let access_claims = Claims {
-                iat: date.timestamp() as usize,
-                exp: (date + Duration::minutes(60)).timestamp() as usize,
-                iss: ISSUER.to_string(),
-                sub: users_id.to_string(),
-            };
-            let refresh_claims = Claims {
-                iat: date.timestamp() as usize,
-                exp: (date + Duration::days(14)).timestamp() as usize,
-                iss: ISSUER.to_string(),
-                sub: users_id.to_string(),
-            };
-            let access_token = encode(
-                &Header::default(),
-                &access_claims,
-                &EncodingKey::from_secret(ACCESS_TOKEN_KEY.as_ref()),
-            );
-            let refresh_token = encode(
-                &Header::default(),
-                &refresh_claims,
-                &EncodingKey::from_secret(REFRESH_TOKEN_KEY.as_ref()),
-            );
-            Ok(Json(Authentication {
-                verification_id: NULL_ALIAS_INT,
-                reference: NULL_ALIAS_INT,
-                code: NULL_ALIAS_INT,
-                email: primary_email,
-                secondary_email: NULL_ALIAS_STRING.to_string(),
-                password,
-                access_token: access_token.unwrap(),
-                refresh_token: refresh_token.unwrap(),
-                users_id,
-            }))
+            let update_latest_sign_in =
+                sqlx::query("UPDATE public.users SET latest_sign_in = $1 WHERE users_id = $2")
+                    .bind(date)
+                    .bind(users_id)
+                    .execute(&pool)
+                    .await;
+            match update_latest_sign_in {
+                Ok(_) => {
+                    let access_claims = Claims {
+                        iat: date.timestamp() as usize,
+                        exp: (date + Duration::minutes(60)).timestamp() as usize,
+                        iss: ISSUER.to_string(),
+                        sub: users_id.to_string(),
+                    };
+                    let refresh_claims = Claims {
+                        iat: date.timestamp() as usize,
+                        exp: (date + Duration::days(14)).timestamp() as usize,
+                        iss: ISSUER.to_string(),
+                        sub: users_id.to_string(),
+                    };
+                    let access_token = encode(
+                        &Header::default(),
+                        &access_claims,
+                        &EncodingKey::from_secret(ACCESS_TOKEN_KEY.as_ref()),
+                    );
+                    let refresh_token = encode(
+                        &Header::default(),
+                        &refresh_claims,
+                        &EncodingKey::from_secret(REFRESH_TOKEN_KEY.as_ref()),
+                    );
+                    Ok(Json(Authentication {
+                        verification_id: NULL_ALIAS_INT,
+                        reference: NULL_ALIAS_INT,
+                        code: NULL_ALIAS_INT,
+                        email: primary_email,
+                        secondary_email: NULL_ALIAS_STRING.to_string(),
+                        password,
+                        access_token: access_token.unwrap(),
+                        refresh_token: refresh_token.unwrap(),
+                        users_id,
+                    }))
+                }
+                Err(_) => Err(StatusCode::INTERNAL_SERVER_ERROR),
+            }
         } else {
             Err(StatusCode::BAD_REQUEST)
         }
@@ -276,61 +285,56 @@ pub async fn forgot_password(
     State(pool): State<PgPool>,
     Json(payload): Json<Authentication>,
 ) -> Result<Json<Authentication>, StatusCode> {
-    let email = payload.email.trim().to_lowercase();
-    let valid = EmailAddress::is_valid(&email);
-    if valid {
-        let fetch_email = sqlx::query(
-            "SELECT users_id FROM public.users WHERE (primary_email = $1 OR secondary_email = $2)",
-        )
-        .bind(&email)
-        .bind(&email)
-        .fetch_all(&pool)
-        .await;
-        if let Ok(rows) = fetch_email {
-            if !rows.is_empty() {
-                let rand: u8 = random();
-                let reference: i32 = rand as i32;
-                let mut rng = SmallRng::from_rng(thread_rng()).unwrap();
-                let code: i32 = rng.gen_range(999..999999);
-                let expire: DateTime<Utc> = Utc::now() + Duration::minutes(MINUTES);
-                let insert_code: Result<(i32, i32), sqlx::Error> = sqlx::query_as(
-                    "INSERT INTO public.verification(reference, code, expire)
+    let email = payload.email;
+    let fetch_email = sqlx::query(
+        "SELECT users_id FROM public.users WHERE (primary_email = $1 OR secondary_email = $2)",
+    )
+    .bind(&email)
+    .bind(&email)
+    .fetch_all(&pool)
+    .await;
+    if let Ok(rows) = fetch_email {
+        if !rows.is_empty() {
+            let rand: u8 = random();
+            let reference: i32 = rand as i32;
+            let mut rng = SmallRng::from_rng(thread_rng()).unwrap();
+            let code: i32 = rng.gen_range(999..999999);
+            let expire: DateTime<Utc> = Utc::now() + Duration::minutes(MINUTES);
+            let insert_code: Result<(i32, i32), sqlx::Error> = sqlx::query_as(
+                "INSERT INTO public.verification(reference, code, expire)
                 VALUES ($1, $2, $3)
                 RETURNING verification_id, reference",
-                )
-                .bind(reference)
-                .bind(code)
-                .bind(expire)
-                .fetch_one(&pool)
-                .await;
-                if let Ok((verification_id, reference)) = insert_code {
-                    let sent = send_email(&email, reference, code);
-                    if let Ok(_) = sent {
-                        Ok(Json(Authentication {
-                            verification_id,
-                            reference,
-                            code: NULL_ALIAS_INT,
-                            email,
-                            secondary_email: NULL_ALIAS_STRING.to_string(),
-                            password: NULL_ALIAS_STRING.to_string(),
-                            access_token: NULL_ALIAS_STRING.to_string(),
-                            refresh_token: NULL_ALIAS_STRING.to_string(),
-                            users_id: NULL_ALIAS_INT,
-                        }))
-                    } else {
-                        Err(StatusCode::INTERNAL_SERVER_ERROR)
-                    }
+            )
+            .bind(reference)
+            .bind(code)
+            .bind(expire)
+            .fetch_one(&pool)
+            .await;
+            if let Ok((verification_id, reference)) = insert_code {
+                let sent = send_email(&email, reference, code);
+                if let Ok(_) = sent {
+                    Ok(Json(Authentication {
+                        verification_id,
+                        reference,
+                        code: NULL_ALIAS_INT,
+                        email,
+                        secondary_email: NULL_ALIAS_STRING.to_string(),
+                        password: NULL_ALIAS_STRING.to_string(),
+                        access_token: NULL_ALIAS_STRING.to_string(),
+                        refresh_token: NULL_ALIAS_STRING.to_string(),
+                        users_id: NULL_ALIAS_INT,
+                    }))
                 } else {
                     Err(StatusCode::INTERNAL_SERVER_ERROR)
                 }
             } else {
-                Err(StatusCode::BAD_REQUEST)
+                Err(StatusCode::INTERNAL_SERVER_ERROR)
             }
         } else {
-            Err(StatusCode::INTERNAL_SERVER_ERROR)
+            Err(StatusCode::BAD_REQUEST)
         }
     } else {
-        Err(StatusCode::BAD_REQUEST)
+        Err(StatusCode::INTERNAL_SERVER_ERROR)
     }
 }
 
@@ -338,110 +342,135 @@ pub async fn reset_password(
     State(pool): State<PgPool>,
     Json(payload): Json<Authentication>,
 ) -> Result<Json<Authentication>, StatusCode> {
-    let email = payload.email.trim().to_lowercase();
-    let valid = EmailAddress::is_valid(&email);
+    let email = payload.email;
     let password = payload.password;
-    if valid && !password.is_empty() {
-        let fetch_code: Result<Option<(i32,)>,  sqlx::Error> = sqlx::query_as(
-            "SELECT verification_id FROM public.verification WHERE (verification_id = $1 AND reference = $2 AND code = $3 AND verified = true)",
-        )
-        .bind(payload.verification_id)
-        .bind(payload.reference)
-        .bind(payload.code)
-        .fetch_optional(&pool)
-        .await;
-        match fetch_code {
-            Ok(ok) => match ok {
-                Some(_) => {
-                    let update_password: Result<(i32, String), sqlx::Error> = sqlx::query_as(
-                        "UPDATE public.users
-                    SET password = $1
-                    WHERE (primary_email = $2 OR secondary_email = $3)
-                    RETURNING users_id, primary_email",
-                    )
-                    .bind(blake3::hash(password.as_bytes()).to_string())
-                    .bind(&email)
-                    .bind(&email)
-                    .fetch_one(&pool)
-                    .await;
-                    if let Ok((users_id, primary_email)) = update_password {
-                        let date = Utc::now();
-                        let access_claims = Claims {
-                            iat: date.timestamp() as usize,
-                            exp: (date + Duration::minutes(60)).timestamp() as usize,
-                            iss: ISSUER.to_string(),
-                            sub: users_id.to_string(),
-                        };
-                        let refresh_claims = Claims {
-                            iat: date.timestamp() as usize,
-                            exp: (date + Duration::days(14)).timestamp() as usize,
-                            iss: ISSUER.to_string(),
-                            sub: users_id.to_string(),
-                        };
-                        let access_token = encode(
-                            &Header::default(),
-                            &access_claims,
-                            &EncodingKey::from_secret(ACCESS_TOKEN_KEY.as_ref()),
-                        );
-                        let refresh_token = encode(
-                            &Header::default(),
-                            &refresh_claims,
-                            &EncodingKey::from_secret(REFRESH_TOKEN_KEY.as_ref()),
-                        );
-                        Ok(Json(Authentication {
-                            verification_id: NULL_ALIAS_INT,
-                            reference: NULL_ALIAS_INT,
-                            code: NULL_ALIAS_INT,
-                            email: primary_email,
-                            secondary_email: NULL_ALIAS_STRING.to_string(),
-                            password,
-                            access_token: access_token.unwrap(),
-                            refresh_token: refresh_token.unwrap(),
-                            users_id,
-                        }))
-                    } else {
-                        Err(StatusCode::INTERNAL_SERVER_ERROR)
-                    }
+    let fetch_code: Result<Option<(i32,)>,  sqlx::Error> = sqlx::query_as(
+        "SELECT verification_id FROM public.verification WHERE (verification_id = $1 AND reference = $2 AND code = $3 AND verified = true)",
+    )
+    .bind(payload.verification_id)
+    .bind(payload.reference)
+    .bind(payload.code)
+    .fetch_optional(&pool)
+    .await;
+    match fetch_code {
+        Ok(ok) => match ok {
+            Some(_) => {
+                let date = Utc::now();
+                let update_password: Result<(i32, String), sqlx::Error> = sqlx::query_as(
+                    "UPDATE public.users
+                SET password = $1, latest_sign_in = $2
+                WHERE (primary_email = $3 OR secondary_email = $4)
+                RETURNING users_id, primary_email",
+                )
+                .bind(blake3::hash(password.as_bytes()).to_string())
+                .bind(date)
+                .bind(&email)
+                .bind(&email)
+                .fetch_one(&pool)
+                .await;
+                if let Ok((users_id, primary_email)) = update_password {
+                    let access_claims = Claims {
+                        iat: date.timestamp() as usize,
+                        exp: (date + Duration::minutes(60)).timestamp() as usize,
+                        iss: ISSUER.to_string(),
+                        sub: users_id.to_string(),
+                    };
+                    let refresh_claims = Claims {
+                        iat: date.timestamp() as usize,
+                        exp: (date + Duration::days(14)).timestamp() as usize,
+                        iss: ISSUER.to_string(),
+                        sub: users_id.to_string(),
+                    };
+                    let access_token = encode(
+                        &Header::default(),
+                        &access_claims,
+                        &EncodingKey::from_secret(ACCESS_TOKEN_KEY.as_ref()),
+                    );
+                    let refresh_token = encode(
+                        &Header::default(),
+                        &refresh_claims,
+                        &EncodingKey::from_secret(REFRESH_TOKEN_KEY.as_ref()),
+                    );
+                    Ok(Json(Authentication {
+                        verification_id: NULL_ALIAS_INT,
+                        reference: NULL_ALIAS_INT,
+                        code: NULL_ALIAS_INT,
+                        email: primary_email,
+                        secondary_email: NULL_ALIAS_STRING.to_string(),
+                        password,
+                        access_token: access_token.unwrap(),
+                        refresh_token: refresh_token.unwrap(),
+                        users_id,
+                    }))
+                } else {
+                    Err(StatusCode::INTERNAL_SERVER_ERROR)
                 }
-                None => Err(StatusCode::BAD_REQUEST),
-            },
-            Err(_) => Err(StatusCode::INTERNAL_SERVER_ERROR),
-        }
-    } else {
-        Err(StatusCode::BAD_REQUEST)
+            }
+            None => Err(StatusCode::BAD_REQUEST),
+        },
+        Err(_) => Err(StatusCode::INTERNAL_SERVER_ERROR),
     }
 }
 
-// inside login
 pub async fn change_password(
     State(pool): State<PgPool>,
-    Json(payload): Json<ChangePassword>,
-) -> StatusCode {
-    let token = decode::<Claims>(
-        &payload.refresh_token,
-        &DecodingKey::from_secret(REFRESH_TOKEN_KEY.as_ref()),
-        &Validation::default(),
-    );
-    if let Ok(TokenData { header: _, claims }) = token {
-        let users_id: i32 = claims.sub.parse().unwrap();
-        let update_password = sqlx::query(
-            "UPDATE public.users
-        SET password = $1
-        WHERE users_id = $2",
-        )
-        .bind(blake3::hash(payload.password.as_bytes()).to_string())
-        .bind(users_id)
-        .execute(&pool)
-        .await;
-        match update_password {
-            Ok(_) => StatusCode::OK,
-            Err(_) => StatusCode::INTERNAL_SERVER_ERROR,
-        }
+    Json(payload): Json<Authentication>,
+) -> Result<Json<Authentication>, StatusCode> {
+    let email = payload.email;
+    let password = payload.password;
+    let date = Utc::now();
+    let update_password: Result<(i32, String), sqlx::Error> = sqlx::query_as(
+        "UPDATE public.users
+    SET password = $1, latest_sign_in = $2
+    WHERE (primary_email = $3 OR secondary_email = $4)
+    RETURNING users_id, primary_email",
+    )
+    .bind(blake3::hash(password.as_bytes()).to_string())
+    .bind(date)
+    .bind(&email)
+    .bind(&email)
+    .fetch_one(&pool)
+    .await;
+    if let Ok((users_id, primary_email)) = update_password {
+        let access_claims = Claims {
+            iat: date.timestamp() as usize,
+            exp: (date + Duration::minutes(60)).timestamp() as usize,
+            iss: ISSUER.to_string(),
+            sub: users_id.to_string(),
+        };
+        let refresh_claims = Claims {
+            iat: date.timestamp() as usize,
+            exp: (date + Duration::days(14)).timestamp() as usize,
+            iss: ISSUER.to_string(),
+            sub: users_id.to_string(),
+        };
+        let access_token = encode(
+            &Header::default(),
+            &access_claims,
+            &EncodingKey::from_secret(ACCESS_TOKEN_KEY.as_ref()),
+        );
+        let refresh_token = encode(
+            &Header::default(),
+            &refresh_claims,
+            &EncodingKey::from_secret(REFRESH_TOKEN_KEY.as_ref()),
+        );
+        Ok(Json(Authentication {
+            verification_id: NULL_ALIAS_INT,
+            reference: NULL_ALIAS_INT,
+            code: NULL_ALIAS_INT,
+            email: primary_email,
+            secondary_email: NULL_ALIAS_STRING.to_string(),
+            password,
+            access_token: access_token.unwrap(),
+            refresh_token: refresh_token.unwrap(),
+            users_id,
+        }))
     } else {
-        StatusCode::UNAUTHORIZED
+        Err(StatusCode::INTERNAL_SERVER_ERROR)
     }
 }
 
+// here
 pub async fn add_secondary_email(
     State(pool): State<PgPool>,
     Json(payload): Json<AddSecondaryEmail>,

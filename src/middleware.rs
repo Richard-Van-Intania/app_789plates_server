@@ -1,5 +1,3 @@
-use std::collections::HashMap;
-
 use crate::{
     authentication::Authentication,
     constants::{ACCESS_TOKEN_KEY, API_KEY, LIMIT},
@@ -20,6 +18,7 @@ use email_address::EmailAddress;
 use hyper::StatusCode;
 use jsonwebtoken::{decode, DecodingKey, Validation};
 use sqlx::PgPool;
+use std::collections::HashMap;
 
 pub async fn validate_api_key(
     Query(params): Query<HashMap<String, String>>,

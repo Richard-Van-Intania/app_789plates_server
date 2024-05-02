@@ -88,21 +88,35 @@ async fn main() {
         )
         .route(
             "/forgotpassword",
-            post(forgot_password.layer(middleware::from_fn(validate_api_key))),
+            post(
+                forgot_password.layer(
+                    ServiceBuilder::new()
+                        .layer(middleware::from_fn(validate_api_key))
+                        .layer(middleware::from_fn(validate_email)),
+                ),
+            ),
         )
         .route(
             "/resetpassword",
-            put(reset_password.layer(middleware::from_fn(validate_api_key))),
+            put(reset_password.layer(
+                ServiceBuilder::new()
+                    .layer(middleware::from_fn(validate_api_key))
+                    .layer(middleware::from_fn(validate_email)),
+            )),
         )
         .route(
             "/renewtoken",
             post(renew_token.layer(middleware::from_fn(validate_api_key))),
         )
-        // here
         .route(
             "/changepassword",
-            put(change_password.layer(middleware::from_fn(verify_signature))),
+            put(change_password.layer(
+                ServiceBuilder::new()
+                    .layer(middleware::from_fn(verify_signature))
+                    .layer(middleware::from_fn(validate_email)),
+            )),
         )
+        // here
         .route(
             "/addsecondaryemail",
             post(add_secondary_email.layer(middleware::from_fn(verify_signature))),

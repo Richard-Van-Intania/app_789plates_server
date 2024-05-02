@@ -1,16 +1,11 @@
-use axum::{extract::Request, http::StatusCode, middleware::Next, response::IntoResponse, Json};
-use axum_extra::{
-    headers::{authorization::Bearer, Authorization},
-    TypedHeader,
-};
-use chrono::{Duration, Utc};
-use jsonwebtoken::{decode, encode, DecodingKey, EncodingKey, Header, TokenData, Validation};
-use serde::{Deserialize, Serialize};
-
 use crate::{
     authentication::Authentication,
     constants::{ACCESS_TOKEN_KEY, ISSUER, NULL_ALIAS_INT, NULL_ALIAS_STRING, REFRESH_TOKEN_KEY},
 };
+use axum::{http::StatusCode, Json};
+use chrono::{Duration, Utc};
+use jsonwebtoken::{decode, encode, DecodingKey, EncodingKey, Header, TokenData, Validation};
+use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize)]
 pub struct Claims {
