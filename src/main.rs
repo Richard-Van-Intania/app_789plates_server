@@ -133,9 +133,9 @@ async fn main() {
                 ),
             ),
         )
+        // here
         .route(
             "/deleteaccount",
-            // later
             delete(delete_account.layer(middleware::from_fn(verify_signature))),
         )
         .route(
