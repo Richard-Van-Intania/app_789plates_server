@@ -1,53 +1,16 @@
-use axum::{
-    extract::{Request, State},
-    http::StatusCode,
-    middleware::Next,
-    response::IntoResponse,
-    Json,
-};
-use axum_extra::{
-    headers::{authorization::Bearer, Authorization},
-    TypedHeader,
-};
-use chrono::{DateTime, Duration, Utc};
-use email_address::EmailAddress;
-use jsonwebtoken::{decode, encode, DecodingKey, EncodingKey, Header, TokenData, Validation};
-use rand::{random, rngs::SmallRng, thread_rng, Rng, SeedableRng};
-use serde::{Deserialize, Serialize};
-use sqlx::PgPool;
-
 use crate::{
+    auth::{Authentication, Claims, Token},
     constants::{
         ACCESS_TOKEN_KEY, ISSUER, MINUTES, NULL_ALIAS_INT, NULL_ALIAS_STRING, REFRESH_TOKEN_KEY,
     },
-    jwt::{Claims, Token},
     mailer::send_email,
 };
-
-#[derive(Deserialize)]
-pub struct ChangePassword {
-    pub refresh_token: String,
-    pub password: String,
-}
-
-#[derive(Deserialize)]
-pub struct AddSecondaryEmail {
-    pub refresh_token: String,
-    pub email: String,
-}
-
-#[derive(Debug, Deserialize, Serialize)]
-pub struct Authentication {
-    pub verification_id: i32,
-    pub reference: i32,
-    pub code: i32,
-    pub email: String,
-    pub secondary_email: String,
-    pub password: String,
-    pub access_token: String,
-    pub refresh_token: String,
-    pub users_id: i32,
-}
+use axum::{extract::State, Json};
+use chrono::{DateTime, Duration, Utc};
+use hyper::StatusCode;
+use jsonwebtoken::{decode, encode, DecodingKey, EncodingKey, Header, TokenData, Validation};
+use rand::{random, rngs::SmallRng, thread_rng, Rng, SeedableRng};
+use sqlx::PgPool;
 
 pub async fn check_availability_email(
     State(pool): State<PgPool>,
@@ -77,7 +40,6 @@ pub async fn check_availability_email(
                 reference,
                 code: NULL_ALIAS_INT,
                 email,
-                secondary_email: NULL_ALIAS_STRING.to_string(),
                 password: NULL_ALIAS_STRING.to_string(),
                 access_token: NULL_ALIAS_STRING.to_string(),
                 refresh_token: NULL_ALIAS_STRING.to_string(),
@@ -121,7 +83,6 @@ pub async fn check_verification_code(
                             reference: payload.reference,
                             code: payload.code,
                             email: payload.email,
-                            secondary_email: NULL_ALIAS_STRING.to_string(),
                             password: NULL_ALIAS_STRING.to_string(),
                             access_token: NULL_ALIAS_STRING.to_string(),
                             refresh_token: NULL_ALIAS_STRING.to_string(),
@@ -196,7 +157,6 @@ pub async fn create_new_account(
                             reference: NULL_ALIAS_INT,
                             code: NULL_ALIAS_INT,
                             email,
-                            secondary_email: NULL_ALIAS_STRING.to_string(),
                             password,
                             access_token: access_token.unwrap(),
                             refresh_token: refresh_token.unwrap(),
@@ -264,7 +224,7 @@ pub async fn sign_in(
                         reference: NULL_ALIAS_INT,
                         code: NULL_ALIAS_INT,
                         email: primary_email,
-                        secondary_email: NULL_ALIAS_STRING.to_string(),
+
                         password,
                         access_token: access_token.unwrap(),
                         refresh_token: refresh_token.unwrap(),
@@ -318,7 +278,7 @@ pub async fn forgot_password(
                         reference,
                         code: NULL_ALIAS_INT,
                         email,
-                        secondary_email: NULL_ALIAS_STRING.to_string(),
+
                         password: NULL_ALIAS_STRING.to_string(),
                         access_token: NULL_ALIAS_STRING.to_string(),
                         refresh_token: NULL_ALIAS_STRING.to_string(),
@@ -396,7 +356,7 @@ pub async fn reset_password(
                         reference: NULL_ALIAS_INT,
                         code: NULL_ALIAS_INT,
                         email: primary_email,
-                        secondary_email: NULL_ALIAS_STRING.to_string(),
+
                         password,
                         access_token: access_token.unwrap(),
                         refresh_token: refresh_token.unwrap(),
@@ -459,7 +419,7 @@ pub async fn change_password(
             reference: NULL_ALIAS_INT,
             code: NULL_ALIAS_INT,
             email: primary_email,
-            secondary_email: NULL_ALIAS_STRING.to_string(),
+
             password,
             access_token: access_token.unwrap(),
             refresh_token: refresh_token.unwrap(),
@@ -474,7 +434,7 @@ pub async fn add_secondary_email(
     State(pool): State<PgPool>,
     Json(payload): Json<Authentication>,
 ) -> Result<Json<Authentication>, StatusCode> {
-    let secondary_email = payload.secondary_email;
+    let email = payload.email;
     let date = Utc::now();
     let update_secondary_email: Result<(i32, String), sqlx::Error> = sqlx::query_as(
         "UPDATE public.users
@@ -482,7 +442,7 @@ pub async fn add_secondary_email(
     WHERE users_id = $3
     RETURNING users_id, primary_email",
     )
-    .bind(&secondary_email)
+    .bind(&email)
     .bind(date)
     .bind(payload.users_id)
     .fetch_one(&pool)
@@ -515,7 +475,6 @@ pub async fn add_secondary_email(
             reference: NULL_ALIAS_INT,
             code: NULL_ALIAS_INT,
             email: primary_email,
-            secondary_email: NULL_ALIAS_STRING.to_string(),
             password: payload.password,
             access_token: access_token.unwrap(),
             refresh_token: refresh_token.unwrap(),
@@ -529,4 +488,51 @@ pub async fn add_secondary_email(
 // here
 pub async fn delete_account(State(pool): State<PgPool>, Json(payload): Json<Token>) -> StatusCode {
     StatusCode::OK
+}
+
+pub async fn renew_token(
+    Json(payload): Json<Authentication>,
+) -> Result<Json<Authentication>, StatusCode> {
+    let token = decode::<Claims>(
+        &payload.refresh_token,
+        &DecodingKey::from_secret(REFRESH_TOKEN_KEY.as_ref()),
+        &Validation::default(),
+    );
+    if let Ok(TokenData { header: _, claims }) = token {
+        let date = Utc::now();
+        let access_claims = Claims {
+            iat: date.timestamp() as usize,
+            exp: (date + Duration::minutes(60)).timestamp() as usize,
+            iss: ISSUER.to_string(),
+            sub: claims.sub.to_string(),
+        };
+        let refresh_claims = Claims {
+            iat: date.timestamp() as usize,
+            exp: (date + Duration::days(14)).timestamp() as usize,
+            iss: ISSUER.to_string(),
+            sub: claims.sub.to_string(),
+        };
+        let access_token = encode(
+            &Header::default(),
+            &access_claims,
+            &EncodingKey::from_secret(ACCESS_TOKEN_KEY.as_ref()),
+        );
+        let refresh_token = encode(
+            &Header::default(),
+            &refresh_claims,
+            &EncodingKey::from_secret(REFRESH_TOKEN_KEY.as_ref()),
+        );
+        Ok(Json(Authentication {
+            verification_id: NULL_ALIAS_INT,
+            reference: NULL_ALIAS_INT,
+            code: NULL_ALIAS_INT,
+            email: NULL_ALIAS_STRING.to_string(),
+            password: NULL_ALIAS_STRING.to_string(),
+            access_token: access_token.unwrap(),
+            refresh_token: refresh_token.unwrap(),
+            users_id: NULL_ALIAS_INT,
+        }))
+    } else {
+        Err(StatusCode::UNAUTHORIZED)
+    }
 }

@@ -3,7 +3,7 @@ use jsonwebtoken::{decode, DecodingKey, TokenData, Validation};
 use serde::Deserialize;
 use sqlx::PgPool;
 
-use crate::{constants::REFRESH_TOKEN_KEY, jwt::Claims};
+use crate::{auth::Claims, constants::REFRESH_TOKEN_KEY};
 
 #[derive(Deserialize)]
 pub struct EditName {

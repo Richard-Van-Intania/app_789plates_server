@@ -1,14 +1,10 @@
 use app_789plates_server::{
+    auth::Authentication,
     authentication::{
         add_secondary_email, change_password, check_availability_email, check_verification_code,
-        create_new_account, delete_account, forgot_password, reset_password, sign_in,
-        Authentication,
+        create_new_account, delete_account, forgot_password, renew_token, reset_password, sign_in,
     },
-    jwt::renew_token,
-    middleware::{
-        check_email_already_use, check_secondary_email_already_use, validate_api_key,
-        validate_email, validate_secondary_email, verify_signature,
-    },
+    middleware::{check_email_already_use, validate_api_key, validate_email, validate_token},
     profile::{edit_information, edit_name, edit_profile_picture},
     shutdown::shutdown_signal,
 };
@@ -112,48 +108,44 @@ async fn main() {
         )
         .route(
             "/changepassword",
-            put(change_password.layer(
-                ServiceBuilder::new()
-                    .layer(middleware::from_fn(verify_signature))
-                    .layer(middleware::from_fn(validate_email)),
-            )),
+            put(change_password.layer(middleware::from_fn(validate_token))),
         )
         .route(
             "/addsecondaryemail",
             post(
                 add_secondary_email.layer(
                     ServiceBuilder::new()
-                        .layer(middleware::from_fn(verify_signature))
-                        .layer(middleware::from_fn(validate_secondary_email))
+                        .layer(middleware::from_fn(validate_token))
+                        .layer(middleware::from_fn(validate_email))
                         .layer(middleware::from_fn_with_state(
                             pool.clone(),
-                            check_secondary_email_already_use,
+                            check_email_already_use,
                         )),
                 ),
             ),
         )
-        // here
         .route(
             "/deleteaccount",
-            delete(delete_account.layer(middleware::from_fn(verify_signature))),
+            delete(delete_account.layer(middleware::from_fn(validate_token))),
         )
+        // here
         .route(
             "/editname",
-            put(edit_name.layer(middleware::from_fn(verify_signature))),
+            put(edit_name.layer(middleware::from_fn(validate_token))),
         )
         .route(
             // later
             "/editprofilepicture",
-            put(edit_profile_picture.layer(middleware::from_fn(verify_signature))),
+            put(edit_profile_picture.layer(middleware::from_fn(validate_token))),
         )
         .route(
             "/editinformation",
-            put(edit_information.layer(middleware::from_fn(verify_signature))),
+            put(edit_information.layer(middleware::from_fn(validate_token))),
         )
         // here
         .route(
             "/search",
-            get(search.layer(middleware::from_fn(verify_signature))),
+            get(search.layer(middleware::from_fn(validate_token))),
         )
         .route(
             "/test_bytes",

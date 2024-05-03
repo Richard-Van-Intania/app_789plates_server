@@ -51,3 +51,6 @@ search log db
 
 println!("rect1 is {:?}", rect1);
 println!("rect1 is {:#?}", rect1);
+
+
+remove secondary_email
