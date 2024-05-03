@@ -1,10 +1,9 @@
+use crate::constants::{EMAIL, MINUTES, PASSWORD};
 use lettre::{
     message::header::ContentType,
     transport::smtp::{authentication::Credentials, response::Response, Error},
     Message, SmtpTransport, Transport,
 };
-
-use crate::constants::{EMAIL, MINUTES, PASSWORD};
 
 pub fn send_email(email: &str, reference: i32, code: i32) -> Result<Response, Error> {
     let creds = Credentials::new(EMAIL.to_string(), PASSWORD.to_string());

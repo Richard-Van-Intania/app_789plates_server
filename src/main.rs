@@ -18,10 +18,6 @@ use axum::{
     routing::{delete, get, post, put},
     Json, Router,
 };
-use axum_extra::{
-    headers::{authorization::Bearer, Authorization},
-    TypedHeader,
-};
 use chrono::Local;
 use sqlx::PgPool;
 use std::{array::from_ref, collections::HashMap, time};
@@ -35,9 +31,11 @@ use tower_http::{
 
 #[tokio::main]
 async fn main() {
+    // logging
     tracing_subscriber::fmt()
         .with_max_level(tracing::Level::DEBUG)
         .init();
+
     let pool = PgPool::connect("postgres://postgres:postgres@localhost:5432/app789plates")
         .await
         .unwrap();
