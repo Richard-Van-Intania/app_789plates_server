@@ -1,7 +1,8 @@
 use crate::{
     auth::{Authentication, Claims},
     constants::{
-        ACCESS_TOKEN_KEY, ISSUER, MINUTES, NULL_ALIAS_INT, NULL_ALIAS_STRING, REFRESH_TOKEN_KEY,
+        ACCESS_TOKEN_KEY, EXP_DAY, EXP_MIN, ISSUER, MINUTES, NULL_ALIAS_INT, NULL_ALIAS_STRING,
+        REFRESH_TOKEN_KEY,
     },
     mailer::send_email,
 };
@@ -132,13 +133,13 @@ pub async fn create_new_account(
                     Ok((users_id,)) => {
                         let access_claims = Claims {
                             iat: date.timestamp() as usize,
-                            exp: (date + Duration::minutes(60)).timestamp() as usize,
+                            exp: (date + Duration::minutes(EXP_MIN)).timestamp() as usize,
                             iss: ISSUER.to_string(),
                             sub: users_id.to_string(),
                         };
                         let refresh_claims = Claims {
                             iat: date.timestamp() as usize,
-                            exp: (date + Duration::days(14)).timestamp() as usize,
+                            exp: (date + Duration::days(EXP_DAY)).timestamp() as usize,
                             iss: ISSUER.to_string(),
                             sub: users_id.to_string(),
                         };
@@ -199,13 +200,13 @@ pub async fn sign_in(
                 Ok(_) => {
                     let access_claims = Claims {
                         iat: date.timestamp() as usize,
-                        exp: (date + Duration::minutes(60)).timestamp() as usize,
+                        exp: (date + Duration::minutes(EXP_MIN)).timestamp() as usize,
                         iss: ISSUER.to_string(),
                         sub: users_id.to_string(),
                     };
                     let refresh_claims = Claims {
                         iat: date.timestamp() as usize,
-                        exp: (date + Duration::days(14)).timestamp() as usize,
+                        exp: (date + Duration::days(EXP_DAY)).timestamp() as usize,
                         iss: ISSUER.to_string(),
                         sub: users_id.to_string(),
                     };
@@ -329,13 +330,13 @@ pub async fn reset_password(
                 if let Ok((users_id, primary_email)) = update_password {
                     let access_claims = Claims {
                         iat: date.timestamp() as usize,
-                        exp: (date + Duration::minutes(60)).timestamp() as usize,
+                        exp: (date + Duration::minutes(EXP_MIN)).timestamp() as usize,
                         iss: ISSUER.to_string(),
                         sub: users_id.to_string(),
                     };
                     let refresh_claims = Claims {
                         iat: date.timestamp() as usize,
-                        exp: (date + Duration::days(14)).timestamp() as usize,
+                        exp: (date + Duration::days(EXP_DAY)).timestamp() as usize,
                         iss: ISSUER.to_string(),
                         sub: users_id.to_string(),
                     };
@@ -381,13 +382,13 @@ pub async fn renew_token(
         let date = Utc::now();
         let access_claims = Claims {
             iat: date.timestamp() as usize,
-            exp: (date + Duration::minutes(60)).timestamp() as usize,
+            exp: (date + Duration::minutes(EXP_MIN)).timestamp() as usize,
             iss: ISSUER.to_string(),
             sub: claims.sub.to_string(),
         };
         let refresh_claims = Claims {
             iat: date.timestamp() as usize,
-            exp: (date + Duration::days(14)).timestamp() as usize,
+            exp: (date + Duration::days(EXP_DAY)).timestamp() as usize,
             iss: ISSUER.to_string(),
             sub: claims.sub.to_string(),
         };
