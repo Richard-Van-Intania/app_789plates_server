@@ -23,8 +23,6 @@ use axum_extra::{
     TypedHeader,
 };
 use chrono::Local;
-use email_address::EmailAddress;
-use http_body_util::BodyExt;
 use sqlx::PgPool;
 use std::{array::from_ref, collections::HashMap, time};
 use tokio::{fs, time::sleep};
