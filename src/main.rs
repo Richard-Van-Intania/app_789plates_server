@@ -35,6 +35,9 @@ use tower_http::{
 
 #[tokio::main]
 async fn main() {
+    tracing_subscriber::fmt()
+        .with_max_level(tracing::Level::DEBUG)
+        .init();
     let pool = PgPool::connect("postgres://postgres:postgres@localhost:5432/app789plates")
         .await
         .unwrap();
