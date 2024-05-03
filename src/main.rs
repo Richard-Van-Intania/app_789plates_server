@@ -5,7 +5,7 @@ use app_789plates_server::{
         create_new_account, delete_account, forgot_password, renew_token, reset_password, sign_in,
     },
     middleware::{check_email_already_use, validate_api_key, validate_email, validate_token},
-    profile::{edit_information, edit_name, edit_profile_picture},
+    profile::{edit_information, edit_name, edit_profile_picture, fetch_profile},
     shutdown::shutdown_signal,
 };
 use axum::{
@@ -125,6 +125,10 @@ async fn main() {
         .route(
             "/deleteaccount",
             delete(delete_account.layer(middleware::from_fn(validate_token))),
+        )
+        .route(
+            "/fetchprofile",
+            post(fetch_profile.layer(middleware::from_fn(validate_token))),
         )
         .route(
             "/editname",
