@@ -126,6 +126,7 @@ async fn main() {
             "/deleteaccount",
             delete(delete_account.layer(middleware::from_fn(validate_token))),
         )
+        // here
         .route(
             "/editname",
             put(edit_name.layer(middleware::from_fn(validate_token))),
@@ -139,7 +140,6 @@ async fn main() {
             "/editinformation",
             put(edit_information.layer(middleware::from_fn(validate_token))),
         )
-        // here
         .route(
             "/search",
             get(search.layer(middleware::from_fn(validate_token))),
@@ -147,25 +147,6 @@ async fn main() {
         .route(
             "/test_bytes",
             post(test_bytes.layer(DefaultBodyLimit::max(5242880))),
-        )
-        .route(
-            "/test_order",
-            get(test.layer(
-                ServiceBuilder::new()
-                    .layer(middleware::from_fn(my_middleware1))
-                    .layer(middleware::from_fn_with_state(pool.clone(), my_middleware2)),
-            )),
-        )
-        .route(
-            "/root",
-            get(root.layer(middleware::from_fn_with_state(
-                pool.clone(),
-                check_email_already_use,
-            ))),
-        )
-        .route(
-            "/test",
-            get(test.layer(ServiceBuilder::new().layer(middleware::from_fn(validate_api_key)))),
         )
         // .route("/test_bytes", post(test_bytes))
         // .route("/test", get(test.layer(middleware::from_fn(verify_key))))
@@ -200,7 +181,6 @@ async fn test() -> Result<impl IntoResponse, StatusCode> {
 }
 
 async fn search(
-    TypedHeader(Authorization(bearer)): TypedHeader<Authorization<Bearer>>,
     Query(params): Query<HashMap<String, String>>,
 ) -> Result<impl IntoResponse, StatusCode> {
     match params.get("query") {
@@ -239,59 +219,3 @@ async fn test_bytes(
 // fetch profile
 
 // impl IntoResponse
-
-async fn my_middleware0(request: Request, next: Next) -> Response {
-    let (parts, body) = request.into_parts();
-
-    let bytes = to_bytes(body, usize::MAX).await.unwrap();
-
-    let Json(mut payload) = Json::<Authentication>::from_bytes(&bytes).unwrap();
-
-    // println!("{:#?}", payload);
-
-    payload.email = payload.email.to_lowercase();
-
-    let body = Json(payload).into_response().into_body();
-
-    let req = Request::from_parts(parts, body);
-
-    let response = next.run(req).await;
-
-    // do something with `response`...
-
-    response
-}
-
-async fn my_middleware1(request: Request, next: Next) -> Response {
-    // do something with `request`...
-    println!("hello from my_middleware1 in at {}", Local::now());
-    sleep(time::Duration::from_secs(1)).await;
-
-    let response = next.run(request).await;
-
-    // do something with `response`...
-    println!("hello from my_middleware1  out at {}", Local::now());
-    sleep(time::Duration::from_secs(1)).await;
-
-    response
-}
-
-async fn my_middleware2(
-    Query(params): Query<HashMap<String, String>>,
-    State(pool): State<PgPool>,
-    request: Request,
-    next: Next,
-) -> Response {
-    println!("params is {:?}", params);
-    // do something with `request`...
-    println!("hello from my_middleware2 in at {}", Local::now());
-    sleep(time::Duration::from_secs(1)).await;
-
-    let response = next.run(request).await;
-
-    // do something with `response`...
-    println!("hello from my_middleware2  out at {}", Local::now());
-    sleep(time::Duration::from_secs(1)).await;
-
-    response
-}

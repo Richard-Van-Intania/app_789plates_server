@@ -1,5 +1,5 @@
 use crate::{
-    auth::{Authentication, Claims, Token},
+    auth::{Authentication, Claims},
     constants::{
         ACCESS_TOKEN_KEY, ISSUER, MINUTES, NULL_ALIAS_INT, NULL_ALIAS_STRING, REFRESH_TOKEN_KEY,
     },
