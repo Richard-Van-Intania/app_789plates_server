@@ -122,7 +122,6 @@ async fn main() {
                 ),
             ),
         )
-        // here
         .route(
             "/deleteaccount",
             delete(delete_account.layer(middleware::from_fn(validate_token))),

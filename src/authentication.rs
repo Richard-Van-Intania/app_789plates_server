@@ -540,7 +540,25 @@ pub async fn add_secondary_email(
     }
 }
 
-// here
-pub async fn delete_account(State(pool): State<PgPool>, Json(payload): Json<Token>) -> StatusCode {
-    StatusCode::OK
+pub async fn delete_account(
+    State(pool): State<PgPool>,
+    Json(payload): Json<Authentication>,
+) -> Result<Json<Authentication>, StatusCode> {
+    let delete_users_id = sqlx::query("DELETE FROM public.users WHERE users_id = $1")
+        .bind(payload.users_id)
+        .execute(&pool)
+        .await;
+    match delete_users_id {
+        Ok(_) => Ok(Json(Authentication {
+            verification_id: NULL_ALIAS_INT,
+            reference: NULL_ALIAS_INT,
+            code: NULL_ALIAS_INT,
+            email: NULL_ALIAS_STRING.to_string(),
+            password: NULL_ALIAS_STRING.to_string(),
+            access_token: NULL_ALIAS_STRING.to_string(),
+            refresh_token: NULL_ALIAS_STRING.to_string(),
+            users_id: NULL_ALIAS_INT,
+        })),
+        Err(_) => Err(StatusCode::INTERNAL_SERVER_ERROR),
+    }
 }
