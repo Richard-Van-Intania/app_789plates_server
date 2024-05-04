@@ -42,7 +42,10 @@ async fn main() {
         .await
         .unwrap();
     let app = Router::new()
-        .route("/", get(|| async {}))
+        .route(
+            "/",
+            get((|| async {}).layer(middleware::from_fn(validate_api_key))),
+        )
         .route(
             "/create_verification",
             post(
