@@ -13,6 +13,7 @@ use jsonwebtoken::{decode, encode, DecodingKey, EncodingKey, Header, TokenData, 
 use rand::{random, rngs::SmallRng, thread_rng, Rng, SeedableRng};
 use sqlx::PgPool;
 
+// for create_new_account, add_secondary_email
 pub async fn check_availability_email(
     State(pool): State<PgPool>,
     Json(payload): Json<Authentication>,
@@ -54,7 +55,7 @@ pub async fn check_availability_email(
     }
 }
 
-// use both create_new_account and forgot_password
+// for create_new_account, forgot_password, add_secondary_email
 pub async fn check_verification_code(
     State(pool): State<PgPool>,
     Json(payload): Json<Authentication>,
@@ -441,25 +442,40 @@ pub async fn add_secondary_email(
     State(pool): State<PgPool>,
     Json(payload): Json<Authentication>,
 ) -> StatusCode {
-    let fetch_users_id: Result<Option<(i32,)>, sqlx::Error> = sqlx::query_as(
-        "SELECT users_id FROM public.users WHERE (users_id = $1 AND secondary_email is null)",
+    let email = payload.email;
+    let fetch_code: Result<Option<(i32,)>,  sqlx::Error> = sqlx::query_as(
+        "SELECT verification_id FROM public.verification WHERE (verification_id = $1 AND reference = $2 AND code = $3 AND verified = true)",
     )
-    .bind(payload.users_id)
+    .bind(payload.verification_id)
+    .bind(payload.reference)
+    .bind(payload.code)
     .fetch_optional(&pool)
     .await;
-    match fetch_users_id {
+    match fetch_code {
         Ok(ok) => match ok {
-            Some((users_id,)) => {
-                let email = payload.email;
-                let date = Utc::now();
-                let update_secondary_email = sqlx::query("UPDATE public.users SET secondary_email = $1, latest_sign_in = $2 WHERE users_id = $3")
-                    .bind(&email)
-                    .bind(date)
-                    .bind(users_id)
-                    .execute(&pool)
+            Some(_) => {
+                let fetch_users_id: Result<Option<(i32,)>, sqlx::Error> = sqlx::query_as("SELECT users_id FROM public.users WHERE (users_id = $1 AND secondary_email is null)")
+                    .bind(payload.users_id)
+                    .fetch_optional(&pool)
                     .await;
-                match update_secondary_email {
-                    Ok(_) => StatusCode::OK,
+                match fetch_users_id {
+                    Ok(ok) => match ok {
+                        Some((users_id,)) => {
+                            let email = email;
+                            let date = Utc::now();
+                            let update_secondary_email = sqlx::query("UPDATE public.users SET secondary_email = $1, latest_sign_in = $2 WHERE users_id = $3")
+                                .bind(&email)
+                                .bind(date)
+                                .bind(users_id)
+                                .execute(&pool)
+                                .await;
+                            match update_secondary_email {
+                                Ok(_) => StatusCode::OK,
+                                Err(_) => StatusCode::INTERNAL_SERVER_ERROR,
+                            }
+                        }
+                        None => StatusCode::BAD_REQUEST,
+                    },
                     Err(_) => StatusCode::INTERNAL_SERVER_ERROR,
                 }
             }

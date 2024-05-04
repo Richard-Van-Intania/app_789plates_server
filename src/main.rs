@@ -2,9 +2,11 @@ use app_789plates_server::{
     auth::Authentication,
     authentication::{
         add_secondary_email, change_password, check_availability_email, check_verification_code,
-        create_new_account, delete_account, forgot_password, renew_token, reset_password, sign_in,
+        delete_account, forgot_password, renew_token, reset_password, sign_in,
     },
-    middleware::{check_email_already_use, validate_api_key, validate_email, validate_token},
+    authentication0::{create_new_account, create_verification, validate_verification},
+    middleware::check_email_already_use,
+    middleware0::{validate_api_key, validate_email, validate_email_unique, validate_token},
     profile::{edit_information, edit_name, edit_profile_picture, fetch_profile},
     shutdown::shutdown_signal,
 };
@@ -35,11 +37,45 @@ async fn main() {
     tracing_subscriber::fmt()
         .with_max_level(tracing::Level::DEBUG)
         .init();
-    let pool = PgPool::connect("postgres://postgres:postgres@localhost:5432/app789plates")
+
+    let pool = PgPool::connect("postgres://postgres:postgres@localhost:5432/production")
         .await
         .unwrap();
     let app = Router::new()
         .route("/", get(|| async {}))
+        .route(
+            "/create_verification",
+            post(
+                create_verification.layer(
+                    ServiceBuilder::new()
+                        .layer(middleware::from_fn(validate_api_key))
+                        .layer(middleware::from_fn(validate_email))
+                        .layer(middleware::from_fn_with_state(
+                            pool.clone(),
+                            validate_email_unique,
+                        )),
+                ),
+            ),
+        )
+        .route(
+            "/validate_verification",
+            post(validate_verification.layer(middleware::from_fn(validate_api_key))),
+        )
+        .route(
+            "/create_new_account",
+            post(
+                create_new_account.layer(
+                    ServiceBuilder::new()
+                        .layer(middleware::from_fn(validate_api_key))
+                        .layer(middleware::from_fn(validate_email))
+                        .layer(middleware::from_fn_with_state(
+                            pool.clone(),
+                            validate_email_unique,
+                        )),
+                ),
+            ),
+        )
+        // old route
         .route(
             "/checkavailabilityemail",
             post(
@@ -107,6 +143,24 @@ async fn main() {
         .route(
             "/changepassword",
             put(change_password.layer(middleware::from_fn(validate_token))),
+        )
+        .route(
+            "/checksecondaryemail",
+            post(
+                check_availability_email.layer(
+                    ServiceBuilder::new()
+                        .layer(middleware::from_fn(validate_token))
+                        .layer(middleware::from_fn(validate_email))
+                        .layer(middleware::from_fn_with_state(
+                            pool.clone(),
+                            check_email_already_use,
+                        )),
+                ),
+            ),
+        )
+        .route(
+            "/checksecondarycode",
+            post(check_verification_code.layer(middleware::from_fn(validate_token))),
         )
         .route(
             "/addsecondaryemail",
