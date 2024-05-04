@@ -116,17 +116,16 @@ async fn main() {
             "/delete_account",
             delete(delete_account.layer(middleware::from_fn(validate_token))),
         )
-        // old route
         .route(
-            "/fetchprofile",
+            "/fetch_profile",
             post(fetch_profile.layer(middleware::from_fn(validate_token))),
         )
         .route(
-            "/editname",
+            "/edit_name",
             put(edit_name.layer(middleware::from_fn(validate_token))),
         )
         .route(
-            "/editinformation",
+            "/edit_information",
             put(edit_information.layer(middleware::from_fn(validate_token))),
         )
         // here

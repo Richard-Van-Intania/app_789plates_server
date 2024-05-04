@@ -12,9 +12,9 @@ use std::collections::HashMap;
 #[derive(Debug, Deserialize, Serialize)]
 pub struct Profile {
     pub name: String,
-    pub primary_email: String,
-    pub secondary_email: Option<String>,
-    pub image_uri: Option<String>,
+    pub email: String,
+    pub profile_uri: Option<String>,
+    pub cover_uri: Option<String>,
     pub information: Option<String>,
 }
 
@@ -22,7 +22,7 @@ pub async fn fetch_profile(
     State(pool): State<PgPool>,
     Json(payload): Json<Authentication>,
 ) -> Result<Json<Profile>, StatusCode> {
-    let fetch_profile: Result<
+    let fetch: Result<
         (
             String,
             String,
@@ -31,16 +31,16 @@ pub async fn fetch_profile(
             Option<String>,
         ),
         sqlx::Error,
-    > = sqlx::query_as("SELECT name, primary_email, secondary_email, image_uri, information FROM public.users WHERE users_id = $1")
+    > = sqlx::query_as("SELECT name, email, profile_uri, cover_uri, information FROM public.users WHERE users_id = $1")
         .bind(payload.users_id)
         .fetch_one(&pool)
         .await;
-    match fetch_profile {
-        Ok((name, primary_email, secondary_email, image_uri, information)) => Ok(Json(Profile {
+    match fetch {
+        Ok((name, email, profile_uri, cover_uri, information)) => Ok(Json(Profile {
             name,
-            primary_email,
-            secondary_email,
-            image_uri,
+            email,
+            profile_uri,
+            cover_uri,
             information,
         })),
         Err(_) => Err(StatusCode::INTERNAL_SERVER_ERROR),
@@ -54,12 +54,12 @@ pub async fn edit_name(
 ) -> StatusCode {
     match params.get("name") {
         Some(name) => {
-            let update_name = sqlx::query("UPDATE public.users SET name = $1 WHERE users_id = $2")
+            let update = sqlx::query("UPDATE public.users SET name = $1 WHERE users_id = $2")
                 .bind(name)
                 .bind(payload.users_id)
                 .execute(&pool)
                 .await;
-            match update_name {
+            match update {
                 Ok(_) => StatusCode::OK,
                 Err(_) => StatusCode::INTERNAL_SERVER_ERROR,
             }
@@ -75,13 +75,13 @@ pub async fn edit_information(
 ) -> StatusCode {
     match params.get("information") {
         Some(information) => {
-            let update_information =
+            let update =
                 sqlx::query("UPDATE public.users SET information = $1 WHERE users_id = $2")
                     .bind(information)
                     .bind(payload.users_id)
                     .execute(&pool)
                     .await;
-            match update_information {
+            match update {
                 Ok(_) => StatusCode::OK,
                 Err(_) => StatusCode::INTERNAL_SERVER_ERROR,
             }
