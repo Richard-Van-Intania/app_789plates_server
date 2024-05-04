@@ -63,7 +63,7 @@ pub async fn validate_email(request: Request, next: Next) -> Result<impl IntoRes
     }
 }
 
-pub async fn check_email_already_use(
+pub async fn validate_email_unique(
     State(pool): State<PgPool>,
     request: Request,
     next: Next,
@@ -75,14 +75,11 @@ pub async fn check_email_already_use(
             let json = Json::<Authentication>::from_bytes(&bytes);
             match json {
                 Ok(Json(payload)) => {
-                    let fetch_email = sqlx::query(
-                        "SELECT users_id FROM public.users WHERE (primary_email = $1 OR secondary_email = $2)",
-                    )
-                    .bind(&payload.email)
-                    .bind(&payload.email)
-                    .fetch_all(&pool)
-                    .await;
-                    if let Ok(rows) = fetch_email {
+                    let fetch = sqlx::query("SELECT users_id FROM public.users WHERE email = $1")
+                        .bind(&payload.email)
+                        .fetch_all(&pool)
+                        .await;
+                    if let Ok(rows) = fetch {
                         if rows.is_empty() {
                             let body = Json(payload).into_response().into_body();
                             let req = Request::from_parts(parts, body);

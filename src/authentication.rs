@@ -13,35 +13,29 @@ use jsonwebtoken::{decode, encode, DecodingKey, EncodingKey, Header, TokenData, 
 use rand::{random, rngs::SmallRng, thread_rng, Rng, SeedableRng};
 use sqlx::PgPool;
 
-// for create_new_account, add_secondary_email
-pub async fn check_availability_email(
+pub async fn create_verification(
     State(pool): State<PgPool>,
     Json(payload): Json<Authentication>,
 ) -> Result<Json<Authentication>, StatusCode> {
-    let email = payload.email;
     let rand: u8 = random();
     let reference: i32 = rand as i32;
     let mut rng = SmallRng::from_rng(thread_rng()).unwrap();
     let code: i32 = rng.gen_range(999..999999);
     let expire: DateTime<Utc> = Utc::now() + Duration::minutes(MINUTES);
-    let insert_code: Result<(i32, i32), sqlx::Error> = sqlx::query_as(
-        "INSERT INTO public.verification(reference, code, expire)
-    VALUES ($1, $2, $3)
-    RETURNING verification_id, reference",
-    )
-    .bind(reference)
-    .bind(code)
-    .bind(expire)
-    .fetch_one(&pool)
-    .await;
-    if let Ok((verification_id, reference)) = insert_code {
-        let sent = send_email(&email, reference, code);
+    let insert: Result<(i32, i32), sqlx::Error> = sqlx::query_as("INSERT INTO public.verification(reference, code, expire) VALUES ($1, $2, $3) RETURNING verification_id, reference")
+        .bind(reference)
+        .bind(code)
+        .bind(expire)
+        .fetch_one(&pool)
+        .await;
+    if let Ok((verification_id, reference)) = insert {
+        let sent = send_email(&payload.email, reference, code);
         if let Ok(_) = sent {
             Ok(Json(Authentication {
                 verification_id,
                 reference,
                 code: NULL_ALIAS_INT,
-                email,
+                email: payload.email,
                 password: NULL_ALIAS_STRING.to_string(),
                 access_token: NULL_ALIAS_STRING.to_string(),
                 refresh_token: NULL_ALIAS_STRING.to_string(),
@@ -55,49 +49,43 @@ pub async fn check_availability_email(
     }
 }
 
-// for create_new_account, forgot_password, add_secondary_email
-pub async fn check_verification_code(
+pub async fn validate_verification(
     State(pool): State<PgPool>,
     Json(payload): Json<Authentication>,
 ) -> Result<Json<Authentication>, StatusCode> {
-    let fetch_code: Result<Option<(i32,DateTime<Utc>)>,  sqlx::Error> = sqlx::query_as(
-        "SELECT verification_id, expire FROM public.verification WHERE (verification_id = $1 AND reference = $2 AND code = $3 AND verified = false)",
-    )
-    .bind(payload.verification_id)
-    .bind(payload.reference)
-    .bind(payload.code)
-    .fetch_optional(&pool)
-    .await;
-    match fetch_code {
-        Ok(ok) => match ok {
-            Some((verification_id, expire)) => {
-                let date = Utc::now();
-                if expire > date {
-                    let update_code = sqlx::query(
-                        "UPDATE public.verification SET verified = true WHERE verification_id = $1",
-                    )
-                    .bind(verification_id)
-                    .execute(&pool)
-                    .await;
-                    match update_code {
-                        Ok(_) => Ok(Json(Authentication {
-                            verification_id,
-                            reference: payload.reference,
-                            code: payload.code,
-                            email: payload.email,
-                            password: NULL_ALIAS_STRING.to_string(),
-                            access_token: NULL_ALIAS_STRING.to_string(),
-                            refresh_token: NULL_ALIAS_STRING.to_string(),
-                            users_id: NULL_ALIAS_INT,
-                        })),
-                        Err(_) => Err(StatusCode::INTERNAL_SERVER_ERROR),
+    let fetch: Result<Option<(i32, DateTime<Utc>)>, sqlx::Error> = sqlx::query_as("SELECT verification_id, expire FROM public.verification WHERE (verification_id = $1 AND reference = $2 AND code = $3 AND verified = false)")
+        .bind(payload.verification_id)
+        .bind(payload.reference)
+        .bind(payload.code)
+        .fetch_optional(&pool)
+        .await;
+    match fetch {
+        Ok(ok) => {
+            match ok {
+                Some((verification_id, expire)) => {
+                    let date = Utc::now();
+                    if expire > date {
+                        let update = sqlx::query("UPDATE public.verification SET verified = true WHERE verification_id = $1").bind(verification_id).execute(&pool).await;
+                        match update {
+                            Ok(_) => Ok(Json(Authentication {
+                                verification_id: payload.verification_id,
+                                reference: payload.reference,
+                                code: payload.code,
+                                email: payload.email,
+                                password: payload.password,
+                                access_token: payload.access_token,
+                                refresh_token: payload.refresh_token,
+                                users_id: payload.users_id,
+                            })),
+                            Err(_) => Err(StatusCode::INTERNAL_SERVER_ERROR),
+                        }
+                    } else {
+                        Err(StatusCode::BAD_REQUEST)
                     }
-                } else {
-                    Err(StatusCode::BAD_REQUEST)
                 }
+                None => Err(StatusCode::BAD_REQUEST),
             }
-            None => Err(StatusCode::BAD_REQUEST),
-        },
+        }
         Err(_) => Err(StatusCode::INTERNAL_SERVER_ERROR),
     }
 }
@@ -108,29 +96,25 @@ pub async fn create_new_account(
 ) -> Result<Json<Authentication>, StatusCode> {
     let email = payload.email;
     let password = payload.password;
-    let fetch_code: Result<Option<(i32,)>,  sqlx::Error> = sqlx::query_as(
-        "SELECT verification_id FROM public.verification WHERE (verification_id = $1 AND reference = $2 AND code = $3 AND verified = true)",
-    )
-    .bind(payload.verification_id)
-    .bind(payload.reference)
-    .bind(payload.code)
-    .fetch_optional(&pool)
-    .await;
-    match fetch_code {
+    let fetch: Result<Option<(i32,)>, sqlx::Error> = sqlx::query_as("SELECT verification_id FROM public.verification WHERE (verification_id = $1 AND reference = $2 AND code = $3 AND verified = true)")
+        .bind(payload.verification_id)
+        .bind(payload.reference)
+        .bind(payload.code)
+        .fetch_optional(&pool)
+        .await;
+    match fetch {
         Ok(ok) => match ok {
             Some(_) => {
                 let date = Utc::now();
-                let insert_user: Result<(i32,), sqlx::Error> = sqlx::query_as(
-                    "INSERT INTO public.users (name, primary_email, password, created_date, latest_sign_in) VALUES ($1, $2, $3, $4, $5) RETURNING users_id",
-                )
-                .bind(*email.split("@").collect::<Vec<&str>>().get(0).unwrap())
-                .bind(&email)
-                .bind(blake3::hash(password.as_bytes()).to_string())
-                .bind(date)
-                .bind(date)
-                .fetch_one(&pool)
-                .await;
-                match insert_user {
+                let insert: Result<(i32,), sqlx::Error> = sqlx::query_as("INSERT INTO public.users (name, email, password, created_date, latest_sign_in) VALUES ($1, $2, $3, $4, $5) RETURNING users_id")
+                    .bind(*email.split("@").collect::<Vec<&str>>().get(0).unwrap())
+                    .bind(&email)
+                    .bind(blake3::hash(password.as_bytes()).to_string())
+                    .bind(date)
+                    .bind(date)
+                    .fetch_one(&pool)
+                    .await;
+                match insert {
                     Ok((users_id,)) => {
                         let access_claims = Claims {
                             iat: date.timestamp() as usize,
@@ -180,24 +164,22 @@ pub async fn sign_in(
 ) -> Result<Json<Authentication>, StatusCode> {
     let email = payload.email;
     let password = payload.password;
-    let fetch_users_id: Result<Option<(i32,String)>, sqlx::Error> = sqlx::query_as(
-            "SELECT users_id, primary_email FROM public.users WHERE (primary_email = $1 OR secondary_email = $2) AND password = $3",
-        )
-        .bind(&email)
-        .bind(&email)
-        .bind(blake3::hash(password.as_bytes()).to_string())
-        .fetch_optional(&pool)
-        .await;
-    if let Ok(opt_users_id) = fetch_users_id {
-        if let Some((users_id, primary_email)) = opt_users_id {
+    let fetch: Result<Option<(i32,)>, sqlx::Error> =
+        sqlx::query_as("SELECT users_id FROM public.users WHERE (email = $1 AND password = $2)")
+            .bind(&email)
+            .bind(blake3::hash(password.as_bytes()).to_string())
+            .fetch_optional(&pool)
+            .await;
+    if let Ok(ok) = fetch {
+        if let Some((users_id,)) = ok {
             let date = Utc::now();
-            let update_latest_sign_in =
+            let update =
                 sqlx::query("UPDATE public.users SET latest_sign_in = $1 WHERE users_id = $2")
                     .bind(date)
                     .bind(users_id)
                     .execute(&pool)
                     .await;
-            match update_latest_sign_in {
+            match update {
                 Ok(_) => {
                     let access_claims = Claims {
                         iat: date.timestamp() as usize,
@@ -225,7 +207,7 @@ pub async fn sign_in(
                         verification_id: NULL_ALIAS_INT,
                         reference: NULL_ALIAS_INT,
                         code: NULL_ALIAS_INT,
-                        email: primary_email,
+                        email,
                         password,
                         access_token: access_token.unwrap(),
                         refresh_token: refresh_token.unwrap(),
@@ -242,36 +224,29 @@ pub async fn sign_in(
     }
 }
 
-pub async fn forgot_password(
+pub async fn create_verification_forgot(
     State(pool): State<PgPool>,
     Json(payload): Json<Authentication>,
 ) -> Result<Json<Authentication>, StatusCode> {
     let email = payload.email;
-    let fetch_email = sqlx::query(
-        "SELECT users_id FROM public.users WHERE (primary_email = $1 OR secondary_email = $2)",
-    )
-    .bind(&email)
-    .bind(&email)
-    .fetch_all(&pool)
-    .await;
-    if let Ok(rows) = fetch_email {
+    let fetch = sqlx::query("SELECT users_id FROM public.users WHERE email = $1")
+        .bind(&email)
+        .fetch_all(&pool)
+        .await;
+    if let Ok(rows) = fetch {
         if !rows.is_empty() {
             let rand: u8 = random();
             let reference: i32 = rand as i32;
             let mut rng = SmallRng::from_rng(thread_rng()).unwrap();
             let code: i32 = rng.gen_range(999..999999);
             let expire: DateTime<Utc> = Utc::now() + Duration::minutes(MINUTES);
-            let insert_code: Result<(i32, i32), sqlx::Error> = sqlx::query_as(
-                "INSERT INTO public.verification(reference, code, expire)
-                VALUES ($1, $2, $3)
-                RETURNING verification_id, reference",
-            )
-            .bind(reference)
-            .bind(code)
-            .bind(expire)
-            .fetch_one(&pool)
-            .await;
-            if let Ok((verification_id, reference)) = insert_code {
+            let insert: Result<(i32,), sqlx::Error> = sqlx::query_as("INSERT INTO public.verification(reference, code, expire) VALUES ($1, $2, $3) RETURNING verification_id")
+                .bind(reference)
+                .bind(code)
+                .bind(expire)
+                .fetch_one(&pool)
+                .await;
+            if let Ok((verification_id,)) = insert {
                 let sent = send_email(&email, reference, code);
                 if let Ok(_) = sent {
                     Ok(Json(Authentication {
@@ -304,31 +279,23 @@ pub async fn reset_password(
 ) -> Result<Json<Authentication>, StatusCode> {
     let email = payload.email;
     let password = payload.password;
-    let fetch_code: Result<Option<(i32,)>,  sqlx::Error> = sqlx::query_as(
-        "SELECT verification_id FROM public.verification WHERE (verification_id = $1 AND reference = $2 AND code = $3 AND verified = true)",
-    )
-    .bind(payload.verification_id)
-    .bind(payload.reference)
-    .bind(payload.code)
-    .fetch_optional(&pool)
-    .await;
-    match fetch_code {
+    let fetch: Result<Option<(i32,)>, sqlx::Error> = sqlx::query_as("SELECT verification_id FROM public.verification WHERE (verification_id = $1 AND reference = $2 AND code = $3 AND verified = true)")
+        .bind(payload.verification_id)
+        .bind(payload.reference)
+        .bind(payload.code)
+        .fetch_optional(&pool)
+        .await;
+    match fetch {
         Ok(ok) => match ok {
             Some(_) => {
                 let date = Utc::now();
-                let update_password: Result<(i32, String), sqlx::Error> = sqlx::query_as(
-                    "UPDATE public.users
-                SET password = $1, latest_sign_in = $2
-                WHERE (primary_email = $3 OR secondary_email = $4)
-                RETURNING users_id, primary_email",
-                )
-                .bind(blake3::hash(password.as_bytes()).to_string())
-                .bind(date)
-                .bind(&email)
-                .bind(&email)
-                .fetch_one(&pool)
-                .await;
-                if let Ok((users_id, primary_email)) = update_password {
+                let update: Result<(i32,), sqlx::Error> = sqlx::query_as("UPDATE public.users SET password = $1, latest_sign_in = $2 WHERE email = $3 RETURNING users_id")
+                    .bind(blake3::hash(password.as_bytes()).to_string())
+                    .bind(date)
+                    .bind(&email)
+                    .fetch_one(&pool)
+                    .await;
+                if let Ok((users_id,)) = update {
                     let access_claims = Claims {
                         iat: date.timestamp() as usize,
                         exp: (date + Duration::minutes(EXP_MIN)).timestamp() as usize,
@@ -355,7 +322,7 @@ pub async fn reset_password(
                         verification_id: NULL_ALIAS_INT,
                         reference: NULL_ALIAS_INT,
                         code: NULL_ALIAS_INT,
-                        email: primary_email,
+                        email,
                         password,
                         access_token: access_token.unwrap(),
                         refresh_token: refresh_token.unwrap(),
@@ -422,65 +389,13 @@ pub async fn change_password(
     State(pool): State<PgPool>,
     Json(payload): Json<Authentication>,
 ) -> StatusCode {
-    let password = payload.password;
-    let date = Utc::now();
-    let update_password = sqlx::query(
-        "UPDATE public.users SET password = $1, latest_sign_in = $2 WHERE users_id = $3",
-    )
-    .bind(blake3::hash(password.as_bytes()).to_string())
-    .bind(date)
-    .bind(payload.users_id)
-    .execute(&pool)
-    .await;
-    match update_password {
+    let update = sqlx::query("UPDATE public.users SET password = $1 WHERE users_id = $2")
+        .bind(blake3::hash(payload.password.as_bytes()).to_string())
+        .bind(payload.users_id)
+        .execute(&pool)
+        .await;
+    match update {
         Ok(_) => StatusCode::OK,
-        Err(_) => StatusCode::INTERNAL_SERVER_ERROR,
-    }
-}
-
-pub async fn add_secondary_email(
-    State(pool): State<PgPool>,
-    Json(payload): Json<Authentication>,
-) -> StatusCode {
-    let email = payload.email;
-    let fetch_code: Result<Option<(i32,)>,  sqlx::Error> = sqlx::query_as(
-        "SELECT verification_id FROM public.verification WHERE (verification_id = $1 AND reference = $2 AND code = $3 AND verified = true)",
-    )
-    .bind(payload.verification_id)
-    .bind(payload.reference)
-    .bind(payload.code)
-    .fetch_optional(&pool)
-    .await;
-    match fetch_code {
-        Ok(ok) => match ok {
-            Some(_) => {
-                let fetch_users_id: Result<Option<(i32,)>, sqlx::Error> = sqlx::query_as("SELECT users_id FROM public.users WHERE (users_id = $1 AND secondary_email is null)")
-                    .bind(payload.users_id)
-                    .fetch_optional(&pool)
-                    .await;
-                match fetch_users_id {
-                    Ok(ok) => match ok {
-                        Some((users_id,)) => {
-                            let email = email;
-                            let date = Utc::now();
-                            let update_secondary_email = sqlx::query("UPDATE public.users SET secondary_email = $1, latest_sign_in = $2 WHERE users_id = $3")
-                                .bind(&email)
-                                .bind(date)
-                                .bind(users_id)
-                                .execute(&pool)
-                                .await;
-                            match update_secondary_email {
-                                Ok(_) => StatusCode::OK,
-                                Err(_) => StatusCode::INTERNAL_SERVER_ERROR,
-                            }
-                        }
-                        None => StatusCode::BAD_REQUEST,
-                    },
-                    Err(_) => StatusCode::INTERNAL_SERVER_ERROR,
-                }
-            }
-            None => StatusCode::BAD_REQUEST,
-        },
         Err(_) => StatusCode::INTERNAL_SERVER_ERROR,
     }
 }
@@ -489,11 +404,11 @@ pub async fn delete_account(
     State(pool): State<PgPool>,
     Json(payload): Json<Authentication>,
 ) -> StatusCode {
-    let delete_users_id = sqlx::query("DELETE FROM public.users WHERE users_id = $1")
+    let delete = sqlx::query("DELETE FROM public.users WHERE users_id = $1")
         .bind(payload.users_id)
         .execute(&pool)
         .await;
-    match delete_users_id {
+    match delete {
         Ok(_) => StatusCode::OK,
         Err(_) => StatusCode::INTERNAL_SERVER_ERROR,
     }

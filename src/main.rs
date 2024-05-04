@@ -1,12 +1,10 @@
 use app_789plates_server::{
     auth::Authentication,
     authentication::{
-        add_secondary_email, change_password, check_availability_email, check_verification_code,
-        delete_account, forgot_password, renew_token, reset_password, sign_in,
+        change_password, create_new_account, create_verification, create_verification_forgot,
+        delete_account, renew_token, reset_password, sign_in, validate_verification,
     },
-    authentication0::{create_new_account, create_verification, validate_verification},
-    middleware::check_email_already_use,
-    middleware0::{validate_api_key, validate_email, validate_email_unique, validate_token},
+    middleware::{validate_api_key, validate_email, validate_email_unique, validate_token},
     profile::{edit_information, edit_name, edit_profile_picture, fetch_profile},
     shutdown::shutdown_signal,
 };
@@ -78,41 +76,8 @@ async fn main() {
                 ),
             ),
         )
-        // old route
         .route(
-            "/checkavailabilityemail",
-            post(
-                check_availability_email.layer(
-                    ServiceBuilder::new()
-                        .layer(middleware::from_fn(validate_api_key))
-                        .layer(middleware::from_fn(validate_email))
-                        .layer(middleware::from_fn_with_state(
-                            pool.clone(),
-                            check_email_already_use,
-                        )),
-                ),
-            ),
-        )
-        .route(
-            "/checkverificationcode",
-            post(check_verification_code.layer(middleware::from_fn(validate_api_key))),
-        )
-        .route(
-            "/createnewaccount",
-            post(
-                create_new_account.layer(
-                    ServiceBuilder::new()
-                        .layer(middleware::from_fn(validate_api_key))
-                        .layer(middleware::from_fn(validate_email))
-                        .layer(middleware::from_fn_with_state(
-                            pool.clone(),
-                            check_email_already_use,
-                        )),
-                ),
-            ),
-        )
-        .route(
-            "/signin",
+            "/sign_in",
             post(
                 sign_in.layer(
                     ServiceBuilder::new()
@@ -122,9 +87,9 @@ async fn main() {
             ),
         )
         .route(
-            "/forgotpassword",
+            "/create_verification_forgot",
             post(
-                forgot_password.layer(
+                create_verification_forgot.layer(
                     ServiceBuilder::new()
                         .layer(middleware::from_fn(validate_api_key))
                         .layer(middleware::from_fn(validate_email)),
@@ -132,7 +97,7 @@ async fn main() {
             ),
         )
         .route(
-            "/resetpassword",
+            "/reset_password",
             put(reset_password.layer(
                 ServiceBuilder::new()
                     .layer(middleware::from_fn(validate_api_key))
@@ -140,49 +105,18 @@ async fn main() {
             )),
         )
         .route(
-            "/renewtoken",
+            "/renew_token",
             post(renew_token.layer(middleware::from_fn(validate_api_key))),
         )
         .route(
-            "/changepassword",
+            "/change_password",
             put(change_password.layer(middleware::from_fn(validate_token))),
         )
         .route(
-            "/checksecondaryemail",
-            post(
-                check_availability_email.layer(
-                    ServiceBuilder::new()
-                        .layer(middleware::from_fn(validate_token))
-                        .layer(middleware::from_fn(validate_email))
-                        .layer(middleware::from_fn_with_state(
-                            pool.clone(),
-                            check_email_already_use,
-                        )),
-                ),
-            ),
-        )
-        .route(
-            "/checksecondarycode",
-            post(check_verification_code.layer(middleware::from_fn(validate_token))),
-        )
-        .route(
-            "/addsecondaryemail",
-            post(
-                add_secondary_email.layer(
-                    ServiceBuilder::new()
-                        .layer(middleware::from_fn(validate_token))
-                        .layer(middleware::from_fn(validate_email))
-                        .layer(middleware::from_fn_with_state(
-                            pool.clone(),
-                            check_email_already_use,
-                        )),
-                ),
-            ),
-        )
-        .route(
-            "/deleteaccount",
+            "/delete_account",
             delete(delete_account.layer(middleware::from_fn(validate_token))),
         )
+        // old route
         .route(
             "/fetchprofile",
             post(fetch_profile.layer(middleware::from_fn(validate_token))),
