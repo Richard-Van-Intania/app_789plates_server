@@ -404,9 +404,11 @@ pub async fn delete_account(
     State(pool): State<PgPool>,
     Json(payload): Json<Authentication>,
 ) -> StatusCode {
-    let delete = sqlx::query("DELETE FROM public.users WHERE users_id = $1")
+    let delete: Result<Option<(i32,)>, sqlx::Error> = sqlx::query_as("DELETE FROM public.users WHERE (users_id = $1 AND email = $2 AND password = $3) RETURNING users_id")
         .bind(payload.users_id)
-        .execute(&pool)
+        .bind(payload.email)
+        .bind(blake3::hash(payload.password.as_bytes()).to_string())
+        .fetch_optional(&pool)
         .await;
     match delete {
         Ok(_) => StatusCode::OK,
