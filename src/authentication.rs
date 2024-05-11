@@ -411,7 +411,10 @@ pub async fn delete_account(
         .fetch_optional(&pool)
         .await;
     match delete {
-        Ok(_) => StatusCode::OK,
+        Ok(ok) => match ok {
+            Some(_) => StatusCode::OK,
+            None => StatusCode::BAD_REQUEST,
+        },
         Err(_) => StatusCode::INTERNAL_SERVER_ERROR,
     }
 }
