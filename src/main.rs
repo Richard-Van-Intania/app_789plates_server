@@ -114,7 +114,13 @@ async fn main() {
         )
         .route(
             "/delete_account",
-            delete(delete_account.layer(middleware::from_fn(validate_token))),
+            delete(
+                delete_account.layer(
+                    ServiceBuilder::new()
+                        .layer(middleware::from_fn(validate_token))
+                        .layer(middleware::from_fn(validate_email)),
+                ),
+            ),
         )
         .route(
             "/fetch_profile",
