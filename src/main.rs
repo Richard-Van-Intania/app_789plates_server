@@ -10,7 +10,7 @@ use app_789plates_server::{
 };
 use axum::{
     body::{to_bytes, Body, Bytes},
-    extract::{ws::WebSocket, DefaultBodyLimit, FromRef, Query, Request, State, WebSocketUpgrade},
+    extract::{DefaultBodyLimit, FromRef, Query, Request, State},
     handler::Handler,
     http::StatusCode,
     middleware::{self, Next},
@@ -19,7 +19,7 @@ use axum::{
     Json, Router,
 };
 use chrono::Local;
-use sqlx::PgPool;
+use sqlx::{PgPool, Pool, Postgres};
 use std::{array::from_ref, collections::HashMap, time};
 use tokio::{fs, time::sleep};
 use tower::ServiceBuilder;
@@ -147,7 +147,6 @@ async fn main() {
             "/test_bytes",
             post(test_bytes.layer(DefaultBodyLimit::max(5242880))),
         )
-        .route("/ws", get(handler))
         // .route("/test_bytes", post(test_bytes))
         // .route("/test", get(test.layer(middleware::from_fn(verify_key))))
         // without middleware
@@ -219,23 +218,3 @@ async fn test_bytes(
 // fetch profile
 
 // impl IntoResponse
-
-async fn handler(ws: WebSocketUpgrade) -> Response {
-    ws.on_upgrade(handle_socket)
-}
-
-async fn handle_socket(mut socket: WebSocket) {
-    while let Some(msg) = socket.recv().await {
-        let msg = if let Ok(msg) = msg {
-            msg
-        } else {
-            // client disconnected
-            return;
-        };
-
-        if socket.send(msg).await.is_err() {
-            // client disconnected
-            return;
-        }
-    }
-}
