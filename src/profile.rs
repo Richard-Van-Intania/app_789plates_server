@@ -90,4 +90,5 @@ pub async fn edit_information(
     }
 }
 
-pub async fn edit_profile_picture() -> impl IntoResponse {}
+pub async fn edit_profile_photo() -> impl IntoResponse {}
+pub async fn edit_cover_photo() -> impl IntoResponse {}

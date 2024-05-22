@@ -5,7 +5,7 @@ use app_789plates_server::{
         delete_account, renew_token, reset_password, sign_in, validate_verification,
     },
     middleware::{validate_api_key, validate_email, validate_email_unique, validate_token},
-    profile::{edit_information, edit_name, edit_profile_picture, fetch_profile},
+    profile::{edit_information, edit_name, edit_profile_photo, fetch_profile},
     shutdown::shutdown_signal,
 };
 use axum::{
@@ -137,7 +137,7 @@ async fn main() {
         // here
         .route(
             "/editprofilepicture",
-            put(edit_profile_picture.layer(middleware::from_fn(validate_token))),
+            put(edit_profile_photo.layer(middleware::from_fn(validate_token))),
         )
         .route(
             "/search",
