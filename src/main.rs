@@ -148,7 +148,7 @@ async fn main() {
         // here
         .route(
             "/editprofilepicture",
-            put(edit_profile_photo.layer(middleware::from_fn(validate_token))),
+            put(edit_profile_photo.layer(middleware::from_fn(validate_api_key))),
         )
         .layer(TraceLayer::new_for_http())
         .layer(TimeoutLayer::new(time::Duration::from_secs(15)))
