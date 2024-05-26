@@ -1,4 +1,4 @@
-use crate::auth::Authentication;
+use crate::{app_state::AppState, auth::Authentication};
 use axum::{
     extract::{Query, State},
     http::StatusCode,
@@ -6,7 +6,6 @@ use axum::{
     Json,
 };
 use serde::{Deserialize, Serialize};
-use sqlx::PgPool;
 use std::collections::HashMap;
 
 #[derive(Debug, Deserialize, Serialize)]
@@ -19,7 +18,7 @@ pub struct Profile {
 }
 
 pub async fn fetch_profile(
-    State(pool): State<PgPool>,
+    State(AppState { pool, client: _ }): State<AppState>,
     Json(payload): Json<Authentication>,
 ) -> Result<Json<Profile>, StatusCode> {
     let fetch: Result<
@@ -49,7 +48,7 @@ pub async fn fetch_profile(
 
 pub async fn edit_name(
     Query(params): Query<HashMap<String, String>>,
-    State(pool): State<PgPool>,
+    State(AppState { pool, client: _ }): State<AppState>,
     Json(payload): Json<Authentication>,
 ) -> StatusCode {
     match params.get("name") {
@@ -70,7 +69,7 @@ pub async fn edit_name(
 
 pub async fn edit_information(
     Query(params): Query<HashMap<String, String>>,
-    State(pool): State<PgPool>,
+    State(AppState { pool, client: _ }): State<AppState>,
     Json(payload): Json<Authentication>,
 ) -> StatusCode {
     match params.get("information") {

@@ -1,4 +1,5 @@
 use crate::{
+    app_state::AppState,
     auth::{Authentication, Claims},
     constants::{
         ACCESS_TOKEN_KEY, EXP_DAY, EXP_MIN, ISSUER, MINUTES, NULL_ALIAS_INT, NULL_ALIAS_STRING,
@@ -11,10 +12,9 @@ use chrono::{DateTime, Duration, Utc};
 use hyper::StatusCode;
 use jsonwebtoken::{decode, encode, DecodingKey, EncodingKey, Header, TokenData, Validation};
 use rand::{random, rngs::SmallRng, thread_rng, Rng, SeedableRng};
-use sqlx::PgPool;
 
 pub async fn create_verification(
-    State(pool): State<PgPool>,
+    State(AppState { pool, client: _ }): State<AppState>,
     Json(payload): Json<Authentication>,
 ) -> Result<Json<Authentication>, StatusCode> {
     let rand: u8 = random();
@@ -50,7 +50,7 @@ pub async fn create_verification(
 }
 
 pub async fn validate_verification(
-    State(pool): State<PgPool>,
+    State(AppState { pool, client: _ }): State<AppState>,
     Json(payload): Json<Authentication>,
 ) -> Result<Json<Authentication>, StatusCode> {
     let fetch: Result<Option<(i32, DateTime<Utc>)>, sqlx::Error> = sqlx::query_as("SELECT verification_id, expire FROM public.verification WHERE (verification_id = $1 AND reference = $2 AND code = $3 AND verified = false)")
@@ -91,7 +91,7 @@ pub async fn validate_verification(
 }
 
 pub async fn create_new_account(
-    State(pool): State<PgPool>,
+    State(AppState { pool, client: _ }): State<AppState>,
     Json(payload): Json<Authentication>,
 ) -> Result<Json<Authentication>, StatusCode> {
     let email = payload.email;
@@ -159,7 +159,7 @@ pub async fn create_new_account(
 }
 
 pub async fn sign_in(
-    State(pool): State<PgPool>,
+    State(AppState { pool, client: _ }): State<AppState>,
     Json(payload): Json<Authentication>,
 ) -> Result<Json<Authentication>, StatusCode> {
     let email = payload.email;
@@ -225,7 +225,7 @@ pub async fn sign_in(
 }
 
 pub async fn create_verification_forgot(
-    State(pool): State<PgPool>,
+    State(AppState { pool, client: _ }): State<AppState>,
     Json(payload): Json<Authentication>,
 ) -> Result<Json<Authentication>, StatusCode> {
     let email = payload.email;
@@ -274,7 +274,7 @@ pub async fn create_verification_forgot(
 }
 
 pub async fn reset_password(
-    State(pool): State<PgPool>,
+    State(AppState { pool, client: _ }): State<AppState>,
     Json(payload): Json<Authentication>,
 ) -> Result<Json<Authentication>, StatusCode> {
     let email = payload.email;
@@ -386,7 +386,7 @@ pub async fn renew_token(
 }
 
 pub async fn change_password(
-    State(pool): State<PgPool>,
+    State(AppState { pool, client: _ }): State<AppState>,
     Json(payload): Json<Authentication>,
 ) -> StatusCode {
     let update = sqlx::query("UPDATE public.users SET password = $1 WHERE users_id = $2")
@@ -401,7 +401,7 @@ pub async fn change_password(
 }
 
 pub async fn delete_account(
-    State(pool): State<PgPool>,
+    State(AppState { pool, client: _ }): State<AppState>,
     Json(payload): Json<Authentication>,
 ) -> StatusCode {
     let delete: Result<Option<(i32,)>, sqlx::Error> = sqlx::query_as("DELETE FROM public.users WHERE (users_id = $1 AND email = $2 AND password = $3) RETURNING users_id")

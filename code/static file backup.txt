@@ -1,5 +1,4 @@
 use app_789plates_server::{
-    app_state::AppState,
     auth::Authentication,
     authentication::{
         change_password, create_new_account, create_verification, create_verification_forgot,
@@ -32,6 +31,12 @@ use tower_http::{
     trace::TraceLayer,
 };
 
+#[derive(Clone)]
+struct AppState {
+    pool: Pool<Postgres>,
+    client: Client,
+}
+
 #[tokio::main]
 async fn main() {
     // logging and diagnostics system
@@ -39,7 +44,7 @@ async fn main() {
         .with_max_level(tracing::Level::DEBUG)
         .init();
 
-    // set environment variable
+    // set env
     env::set_var("AWS_ACCESS_KEY_ID", AWS_ACCESS_KEY_ID);
     env::set_var("AWS_SECRET_ACCESS_KEY", AWS_SECRET_ACCESS_KEY);
     env::set_var("AWS_REGION", AWS_REGION);
@@ -49,7 +54,6 @@ async fn main() {
     let pool = PgPool::connect("postgres://postgres:postgres@localhost:5432/production")
         .await
         .unwrap();
-    let state = AppState { pool, client };
     let app = Router::new()
         .route(
             "/",
@@ -63,7 +67,7 @@ async fn main() {
                         .layer(middleware::from_fn(validate_api_key))
                         .layer(middleware::from_fn(validate_email))
                         .layer(middleware::from_fn_with_state(
-                            state.clone(),
+                            pool.clone(),
                             validate_email_unique,
                         )),
                 ),
@@ -81,7 +85,7 @@ async fn main() {
                         .layer(middleware::from_fn(validate_api_key))
                         .layer(middleware::from_fn(validate_email))
                         .layer(middleware::from_fn_with_state(
-                            state.clone(),
+                            pool.clone(),
                             validate_email_unique,
                         )),
                 ),
@@ -150,12 +154,82 @@ async fn main() {
             "/editprofilepicture",
             put(edit_profile_photo.layer(middleware::from_fn(validate_token))),
         )
+        .route(
+            "/search",
+            get(search.layer(middleware::from_fn(validate_token))),
+        )
+        .route(
+            "/test_bytes",
+            post(test_bytes.layer(DefaultBodyLimit::max(5242880))),
+        )
+        // .route("/test_bytes", post(test_bytes))
+        // .route("/test", get(test.layer(middleware::from_fn(verify_key))))
+        // without middleware
+        // .nest_service("/assets", ServeDir::new("assets"))
+        // with middleware
+        .nest_service(
+            "/assets",
+            ServiceBuilder::new()
+                .layer(middleware::from_fn(validate_api_key))
+                .service(ServeDir::new("assets")),
+        )
         .layer(TraceLayer::new_for_http())
         .layer(TimeoutLayer::new(time::Duration::from_secs(15)))
-        .with_state(state);
+        .with_state(pool);
     let listener = tokio::net::TcpListener::bind("0.0.0.0:8700").await.unwrap();
     axum::serve(listener, app)
         .with_graceful_shutdown(shutdown_signal())
         .await
         .unwrap();
 }
+
+async fn root(Json(payload): Json<Authentication>) -> Result<impl IntoResponse, StatusCode> {
+    println!("{:#?}", payload);
+    println!("{:?}", payload);
+    Ok(())
+}
+
+async fn test() -> Result<impl IntoResponse, StatusCode> {
+    println!("hello from test at {}", Local::now());
+    Ok(())
+}
+
+async fn search(
+    Query(params): Query<HashMap<String, String>>,
+) -> Result<impl IntoResponse, StatusCode> {
+    match params.get("query") {
+        Some(query) => Ok(query.to_string().to_uppercase()),
+        None => Err(StatusCode::BAD_REQUEST),
+    }
+}
+
+async fn test_bytes(
+    Query(params): Query<HashMap<String, String>>,
+    body: Bytes,
+) -> Result<impl IntoResponse, StatusCode> {
+    match params.get("file_name") {
+        Some(file_name) => {
+            let write_result = fs::write(format!("assets/{}", file_name), body).await;
+            match write_result {
+                Ok(_) => Ok(file_name.to_string()),
+                Err(_) => Err(StatusCode::INTERNAL_SERVER_ERROR),
+            }
+        }
+        None => Err(StatusCode::BAD_REQUEST),
+    }
+}
+
+//  plates
+// add edit delete transfer show hide
+
+// search search with condition
+
+// home feed fetch timeline
+
+// like plate, like profile
+
+// add plate
+
+// fetch profile
+
+// impl IntoResponse
