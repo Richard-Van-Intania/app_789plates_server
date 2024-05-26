@@ -4,6 +4,7 @@ use app_789plates_server::{
         change_password, create_new_account, create_verification, create_verification_forgot,
         delete_account, renew_token, reset_password, sign_in, validate_verification,
     },
+    constants::{AWS_ACCESS_KEY_ID, AWS_REGION, AWS_SECRET_ACCESS_KEY},
     middleware::{validate_api_key, validate_email, validate_email_unique, validate_token},
     profile::{edit_information, edit_name, edit_profile_photo, fetch_profile},
     shutdown::shutdown_signal,
@@ -20,7 +21,7 @@ use axum::{
 };
 use chrono::Local;
 use sqlx::{PgPool, Pool, Postgres};
-use std::{array::from_ref, collections::HashMap, time};
+use std::{array::from_ref, collections::HashMap, env, time};
 use tokio::{fs, time::sleep};
 use tower::ServiceBuilder;
 use tower_http::{
@@ -31,6 +32,13 @@ use tower_http::{
 
 #[tokio::main]
 async fn main() {
+    env::set_var("AWS_ACCESS_KEY_ID", AWS_ACCESS_KEY_ID);
+    env::set_var("AWS_SECRET_ACCESS_KEY", AWS_SECRET_ACCESS_KEY);
+    env::set_var("AWS_REGION", AWS_REGION);
+    let config = aws_config::load_from_env().await;
+    let client = aws_sdk_s3::Client::new(&config);
+
+    let object_key = "plates/plates-52d3be64-c3f8-4ec9-b718-96efbca54889.jpg";
     // logging
     tracing_subscriber::fmt()
         .with_max_level(tracing::Level::DEBUG)

@@ -14,3 +14,8 @@ pub const ACCESS_TOKEN_KEY: &'static str = "618C654BBBF31A6D315BA7AB8AB2A";
 pub const REFRESH_TOKEN_KEY: &'static str = "D586891172B4BFC6AD15B449DB593";
 
 pub const LIMIT: usize = 5242880;
+
+pub const AWS_ACCESS_KEY_ID: &'static str = "AKIAQY4DSPEWSHRSWBAC";
+pub const AWS_SECRET_ACCESS_KEY: &'static str = "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";
+pub const AWS_REGION: &'static str = "ap-southeast-1";
+pub const BUCKET_NAME: &'static str = "app789plates-26855607-129f-4df0-87d8-fa23defbb78e";
