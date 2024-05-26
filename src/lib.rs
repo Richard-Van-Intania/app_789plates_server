@@ -1,6 +1,7 @@
 pub mod app_state;
 pub mod auth;
 pub mod authentication;
+pub mod aws_operations;
 pub mod constants;
 pub mod mailer;
 pub mod middleware;

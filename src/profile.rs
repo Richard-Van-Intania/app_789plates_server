@@ -1,4 +1,7 @@
-use crate::{app_state::AppState, auth::Authentication, constants::BUCKET_NAME};
+use crate::{
+    app_state::AppState, auth::Authentication, aws_operations::remove_object,
+    constants::BUCKET_NAME,
+};
 use aws_sdk_s3::presigning::PresigningConfig;
 use axum::{
     extract::{Query, State},
@@ -91,18 +94,13 @@ pub async fn edit_information(
 }
 
 pub async fn edit_profile_photo(
-    State(AppState { pool, client }): State<AppState>,
-    Json(payload): Json<Authentication>,
+    Query(params): Query<HashMap<String, String>>,
+    State(AppState { pool: _, client }): State<AppState>,
 ) -> impl IntoResponse {
-    let expires_in = Duration::from_secs(7200);
-    let presigned_request = client
-        .put_object()
-        .bucket(BUCKET_NAME)
-        .key("plates/plates-20d0da2a-254f-41ff-8d2c-4e477a7c4ee5.jpg")
-        .presigned(PresigningConfig::expires_in(expires_in).unwrap())
-        .await
-        .unwrap();
-
-    presigned_request.uri().to_string()
+    let result = remove_object(&client, params.get("object_key").unwrap().to_string()).await;
+    match result {
+        Ok(_) => StatusCode::OK,
+        Err(_) => StatusCode::INTERNAL_SERVER_ERROR,
+    }
 }
 pub async fn edit_cover_photo() -> impl IntoResponse {}
