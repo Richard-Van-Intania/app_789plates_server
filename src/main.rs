@@ -39,13 +39,12 @@ async fn main() {
         .with_max_level(tracing::Level::DEBUG)
         .init();
 
-    // set environment variable
+    // aws s3
     env::set_var("AWS_ACCESS_KEY_ID", AWS_ACCESS_KEY_ID);
     env::set_var("AWS_SECRET_ACCESS_KEY", AWS_SECRET_ACCESS_KEY);
     env::set_var("AWS_REGION", AWS_REGION);
     let config = aws_config::load_from_env().await;
     let client = aws_sdk_s3::Client::new(&config);
-
     let pool = PgPool::connect("postgres://postgres:postgres@localhost:5432/production")
         .await
         .unwrap();
