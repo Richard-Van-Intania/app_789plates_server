@@ -143,22 +143,23 @@ pub async fn update_profile_photo(
 pub async fn create_presigned_url(
     Query(params): Query<HashMap<String, String>>,
     State(AppState { pool: _, client }): State<AppState>,
-) -> Result<impl IntoResponse, StatusCode> {
+) -> Result<String, StatusCode> {
     match params.get("object_key") {
         Some(object_key) => {
             let expires_in = Duration::from_secs(7200);
-            let presigning_config = match PresigningConfig::expires_in(expires_in) {
-                Ok(ok) => ok,
-                Err(_) => return Err(StatusCode::INTERNAL_SERVER_ERROR),
-            };
-            let presigned_request = client
-                .put_object()
-                .bucket(BUCKET_NAME)
-                .key(object_key)
-                .presigned(presigning_config)
-                .await;
-            match presigned_request {
-                Ok(ok) => Ok(ok.uri().to_string()),
+            match PresigningConfig::expires_in(expires_in) {
+                Ok(presigning_config) => {
+                    let presigned_request = client
+                        .put_object()
+                        .bucket(BUCKET_NAME)
+                        .key(object_key)
+                        .presigned(presigning_config)
+                        .await;
+                    match presigned_request {
+                        Ok(ok) => Ok(ok.uri().to_string()),
+                        Err(_) => Err(StatusCode::INTERNAL_SERVER_ERROR),
+                    }
+                }
                 Err(_) => Err(StatusCode::INTERNAL_SERVER_ERROR),
             }
         }
