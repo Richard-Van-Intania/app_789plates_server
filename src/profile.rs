@@ -1,16 +1,21 @@
 use crate::{
-    app_state::AppState, auth::Authentication, aws_operations::remove_object,
-    constants::BUCKET_NAME,
+    app_state::AppState,
+    auth::Authentication,
+    aws_operations::{generate_presigned_url, remove_object},
 };
-use aws_sdk_s3::presigning::PresigningConfig;
 use axum::{
+    body::Bytes,
     extract::{Query, State},
     http::StatusCode,
     response::IntoResponse,
     Json,
 };
 use serde::{Deserialize, Serialize};
-use std::{collections::HashMap, time::Duration};
+use std::collections::HashMap;
+
+use crate::constants::BUCKET_NAME;
+use aws_sdk_s3::{presigning::PresigningConfig, Client, Error};
+use std::time::Duration;
 
 #[derive(Debug, Deserialize, Serialize)]
 pub struct Profile {
@@ -103,4 +108,60 @@ pub async fn edit_profile_photo(
         Err(_) => StatusCode::INTERNAL_SERVER_ERROR,
     }
 }
-pub async fn edit_cover_photo() -> impl IntoResponse {}
+
+pub async fn update_cover_photo() -> impl IntoResponse {}
+
+pub async fn update_profile_photo(
+    Query(params): Query<HashMap<String, String>>,
+    State(AppState { pool, client }): State<AppState>,
+    body: Bytes,
+) -> StatusCode {
+    let users_id = match params.get("users_id") {
+        Some(some) => match some.parse::<i32>() {
+            Ok(ok) => ok,
+            Err(_) => return StatusCode::BAD_REQUEST,
+        },
+        None => return StatusCode::BAD_REQUEST,
+    };
+    let object_key = match params.get("object_key") {
+        Some(some) => some.to_string(),
+        None => return StatusCode::BAD_REQUEST,
+    };
+    let result = generate_presigned_url(&client, object_key.to_string()).await;
+    let url = match result {
+        Ok(ok) => ok,
+        Err(_) => return StatusCode::INTERNAL_SERVER_ERROR,
+    };
+    let cln = reqwest::Client::new();
+    // let res = cln.post(url).body(body).send().await;
+    // cannot use body
+
+    //
+    StatusCode::OK
+}
+
+pub async fn create_presigned_url(
+    Query(params): Query<HashMap<String, String>>,
+    State(AppState { pool: _, client }): State<AppState>,
+) -> Result<impl IntoResponse, StatusCode> {
+    match params.get("object_key") {
+        Some(object_key) => {
+            let expires_in = Duration::from_secs(7200);
+            let presigning_config = match PresigningConfig::expires_in(expires_in) {
+                Ok(ok) => ok,
+                Err(_) => return Err(StatusCode::INTERNAL_SERVER_ERROR),
+            };
+            let presigned_request = client
+                .put_object()
+                .bucket(BUCKET_NAME)
+                .key(object_key)
+                .presigned(presigning_config)
+                .await;
+            match presigned_request {
+                Ok(ok) => Ok(ok.uri().to_string()),
+                Err(_) => Err(StatusCode::INTERNAL_SERVER_ERROR),
+            }
+        }
+        None => Err(StatusCode::BAD_REQUEST),
+    }
+}

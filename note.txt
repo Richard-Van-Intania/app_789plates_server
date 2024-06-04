@@ -54,3 +54,10 @@ println!("rect1 is {:#?}", rect1);
 
 
 remove secondary_email
+
+
+profile_photo
+
+cover_photo
+
+plates_photo

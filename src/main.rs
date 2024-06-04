@@ -7,7 +7,10 @@ use app_789plates_server::{
     },
     constants::{AWS_ACCESS_KEY_ID, AWS_REGION, AWS_SECRET_ACCESS_KEY},
     middleware::{validate_api_key, validate_email, validate_email_unique, validate_token},
-    profile::{edit_information, edit_name, edit_profile_photo, fetch_profile},
+    profile::{
+        create_presigned_url, edit_information, edit_name, edit_profile_photo, fetch_profile,
+        update_profile_photo,
+    },
     shutdown::shutdown_signal,
 };
 use aws_sdk_s3::Client;
@@ -146,8 +149,12 @@ async fn main() {
         )
         // here
         .route(
-            "/editprofilepicture",
-            put(edit_profile_photo.layer(middleware::from_fn(validate_api_key))),
+            "/update_profile_photo",
+            put(update_profile_photo.layer(middleware::from_fn(validate_api_key))),
+        )
+        .route(
+            "/create_presigned_url",
+            post(create_presigned_url.layer(middleware::from_fn(validate_api_key))),
         )
         .layer(TraceLayer::new_for_http())
         .layer(TimeoutLayer::new(time::Duration::from_secs(15)))
