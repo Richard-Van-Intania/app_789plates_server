@@ -111,34 +111,7 @@ pub async fn edit_profile_photo(
 
 pub async fn update_cover_photo() -> impl IntoResponse {}
 
-pub async fn update_profile_photo(
-    Query(params): Query<HashMap<String, String>>,
-    State(AppState { pool, client }): State<AppState>,
-    body: Bytes,
-) -> StatusCode {
-    let users_id = match params.get("users_id") {
-        Some(some) => match some.parse::<i32>() {
-            Ok(ok) => ok,
-            Err(_) => return StatusCode::BAD_REQUEST,
-        },
-        None => return StatusCode::BAD_REQUEST,
-    };
-    let object_key = match params.get("object_key") {
-        Some(some) => some.to_string(),
-        None => return StatusCode::BAD_REQUEST,
-    };
-    let result = presigned_url(&client, object_key.to_string()).await;
-    let url = match result {
-        Ok(ok) => ok,
-        Err(_) => return StatusCode::INTERNAL_SERVER_ERROR,
-    };
-    let cln = reqwest::Client::new();
-    // let res = cln.post(url).body(body).send().await;
-    // cannot use body
-
-    //
-    StatusCode::OK
-}
+pub async fn update_profile_photo() -> impl IntoResponse {}
 
 pub async fn generate_presigned_url(
     Query(params): Query<HashMap<String, String>>,
