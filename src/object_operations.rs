@@ -1,4 +1,7 @@
-use crate::{app_state::AppState, constants::BUCKET_NAME};
+use crate::{
+    app_state::AppState,
+    constants::{BUCKET_NAME, COVER_KEY, PLATES_KEY, PROFILE_KEY},
+};
 use aws_sdk_s3::presigning::PresigningConfig;
 use axum::extract::{Query, State};
 use hyper::StatusCode;
@@ -47,11 +50,11 @@ pub async fn update_object(
         None => return StatusCode::BAD_REQUEST,
     };
 
-    let sql = if object_key.contains("profile/profile_") {
+    let sql = if object_key.contains(PROFILE_KEY) {
         "SELECT profile_uri FROM public.users WHERE users_id = $1"
-    } else if object_key.contains("cover/cover_") {
+    } else if object_key.contains(COVER_KEY) {
         "SELECT cover_uri FROM public.users WHERE users_id = $1"
-    } else if object_key.contains("plates/plates_") {
+    } else if object_key.contains(PLATES_KEY) {
         "SELECT plates_uri FROM public.plates WHERE plates_id = $1"
     } else {
         return StatusCode::BAD_REQUEST;
@@ -75,22 +78,38 @@ pub async fn update_object(
         Err(_) => return StatusCode::INTERNAL_SERVER_ERROR,
     };
 
-    let sql = if object_key.contains("profile/profile_") {
-        "UPDATE public.users SET profile_uri = $1 WHERE users_id = $2"
-    } else if object_key.contains("cover/cover_") {
-        "UPDATE public.users SET cover_uri = $1 WHERE users_id = $2"
-    } else if object_key.contains("plates/plates_") {
-        "UPDATE public.plates SET plates_uri = $1 WHERE plates_id = $2"
+    if object_key == PROFILE_KEY || object_key == COVER_KEY || object_key == PLATES_KEY {
+        let sql = if object_key.contains(PROFILE_KEY) {
+            "UPDATE public.users SET profile_uri = null WHERE users_id = $1"
+        } else if object_key.contains(COVER_KEY) {
+            "UPDATE public.users SET cover_uri = null WHERE users_id = $1"
+        } else if object_key.contains(PLATES_KEY) {
+            "UPDATE public.plates SET plates_uri = null WHERE plates_id = $1"
+        } else {
+            return StatusCode::BAD_REQUEST;
+        };
+        match sqlx::query(sql).bind(id).execute(&pool).await {
+            Ok(_) => StatusCode::OK,
+            Err(_) => StatusCode::INTERNAL_SERVER_ERROR,
+        }
     } else {
-        return StatusCode::BAD_REQUEST;
-    };
-    match sqlx::query(sql)
-        .bind(object_key)
-        .bind(id)
-        .execute(&pool)
-        .await
-    {
-        Ok(_) => StatusCode::OK,
-        Err(_) => StatusCode::INTERNAL_SERVER_ERROR,
+        let sql = if object_key.contains(PROFILE_KEY) {
+            "UPDATE public.users SET profile_uri = $1 WHERE users_id = $2"
+        } else if object_key.contains(COVER_KEY) {
+            "UPDATE public.users SET cover_uri = $1 WHERE users_id = $2"
+        } else if object_key.contains(PLATES_KEY) {
+            "UPDATE public.plates SET plates_uri = $1 WHERE plates_id = $2"
+        } else {
+            return StatusCode::BAD_REQUEST;
+        };
+        match sqlx::query(sql)
+            .bind(object_key)
+            .bind(id)
+            .execute(&pool)
+            .await
+        {
+            Ok(_) => StatusCode::OK,
+            Err(_) => StatusCode::INTERNAL_SERVER_ERROR,
+        }
     }
 }
