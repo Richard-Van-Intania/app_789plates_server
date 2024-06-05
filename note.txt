@@ -61,3 +61,12 @@ profile_photo
 cover_photo
 
 plates_photo
+
+add plates multiple ui one by one accually
+
+
+// unique_text
+province_id(0)-vehicle_type_id(0)-front_number(0)-front_text(xxx)-number(0)
+
+// must query from db
+special_front_id
