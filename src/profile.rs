@@ -1,7 +1,7 @@
 use crate::{
     app_state::AppState,
     auth::Authentication,
-    aws_operations::{generate_presigned_url, remove_object},
+    aws_operations::{presigned_url, remove_object},
 };
 use axum::{
     body::Bytes,
@@ -127,7 +127,7 @@ pub async fn update_profile_photo(
         Some(some) => some.to_string(),
         None => return StatusCode::BAD_REQUEST,
     };
-    let result = generate_presigned_url(&client, object_key.to_string()).await;
+    let result = presigned_url(&client, object_key.to_string()).await;
     let url = match result {
         Ok(ok) => ok,
         Err(_) => return StatusCode::INTERNAL_SERVER_ERROR,
@@ -140,7 +140,7 @@ pub async fn update_profile_photo(
     StatusCode::OK
 }
 
-pub async fn create_presigned_url(
+pub async fn generate_presigned_url(
     Query(params): Query<HashMap<String, String>>,
     State(AppState { pool: _, client }): State<AppState>,
 ) -> Result<String, StatusCode> {

@@ -12,7 +12,7 @@ pub async fn remove_object(client: &Client, key: String) -> Result<(), Error> {
     Ok(())
 }
 
-pub async fn generate_presigned_url(
+pub async fn presigned_url(
     client: &Client,
     key: String,
 ) -> Result<String, Box<dyn std::error::Error>> {
