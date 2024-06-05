@@ -1,10 +1,5 @@
-use crate::{
-    app_state::AppState,
-    auth::Authentication,
-    aws_operations::{presigned_url, remove_object},
-};
+use crate::{app_state::AppState, auth::Authentication};
 use axum::{
-    body::Bytes,
     extract::{Query, State},
     http::StatusCode,
     response::IntoResponse,
@@ -12,10 +7,6 @@ use axum::{
 };
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-
-use crate::constants::BUCKET_NAME;
-use aws_sdk_s3::{presigning::PresigningConfig, Client, Error};
-use std::time::Duration;
 
 #[derive(Debug, Deserialize, Serialize)]
 pub struct Profile {
@@ -98,44 +89,8 @@ pub async fn edit_information(
     }
 }
 
-pub async fn edit_profile_photo(
-    Query(params): Query<HashMap<String, String>>,
-    State(AppState { pool: _, client }): State<AppState>,
-) -> impl IntoResponse {
-    let result = remove_object(&client, params.get("object_key").unwrap().to_string()).await;
-    match result {
-        Ok(_) => StatusCode::OK,
-        Err(_) => StatusCode::INTERNAL_SERVER_ERROR,
-    }
-}
+// here
 
 pub async fn update_cover_photo() -> impl IntoResponse {}
 
 pub async fn update_profile_photo() -> impl IntoResponse {}
-
-pub async fn generate_presigned_url(
-    Query(params): Query<HashMap<String, String>>,
-    State(AppState { pool: _, client }): State<AppState>,
-) -> Result<String, StatusCode> {
-    match params.get("object_key") {
-        Some(object_key) => {
-            let expires_in = Duration::from_secs(7200);
-            match PresigningConfig::expires_in(expires_in) {
-                Ok(presigning_config) => {
-                    let presigned_request = client
-                        .put_object()
-                        .bucket(BUCKET_NAME)
-                        .key(object_key)
-                        .presigned(presigning_config)
-                        .await;
-                    match presigned_request {
-                        Ok(ok) => Ok(ok.uri().to_string()),
-                        Err(_) => Err(StatusCode::INTERNAL_SERVER_ERROR),
-                    }
-                }
-                Err(_) => Err(StatusCode::INTERNAL_SERVER_ERROR),
-            }
-        }
-        None => Err(StatusCode::BAD_REQUEST),
-    }
-}

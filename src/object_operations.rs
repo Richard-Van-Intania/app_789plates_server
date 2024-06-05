@@ -1,0 +1,100 @@
+use crate::{app_state::AppState, constants::BUCKET_NAME};
+use aws_sdk_s3::presigning::PresigningConfig;
+use axum::extract::{Query, State};
+use hyper::StatusCode;
+use std::{collections::HashMap, time::Duration};
+
+pub async fn generate_presigned_url(
+    Query(params): Query<HashMap<String, String>>,
+    State(AppState { pool: _, client }): State<AppState>,
+) -> Result<String, StatusCode> {
+    match params.get("object_key") {
+        Some(object_key) => {
+            let expires_in = Duration::from_secs(7200);
+            match PresigningConfig::expires_in(expires_in) {
+                Ok(presigning_config) => {
+                    let presigned_request = client
+                        .put_object()
+                        .bucket(BUCKET_NAME)
+                        .key(object_key)
+                        .presigned(presigning_config)
+                        .await;
+                    match presigned_request {
+                        Ok(ok) => Ok(ok.uri().to_string()),
+                        Err(_) => Err(StatusCode::INTERNAL_SERVER_ERROR),
+                    }
+                }
+                Err(_) => Err(StatusCode::INTERNAL_SERVER_ERROR),
+            }
+        }
+        None => Err(StatusCode::BAD_REQUEST),
+    }
+}
+
+pub async fn delete_object(
+    Query(params): Query<HashMap<String, String>>,
+    State(AppState { pool, client }): State<AppState>,
+) -> StatusCode {
+    match params.get("object_key") {
+        Some(object_key) => match client
+            .delete_object()
+            .bucket(BUCKET_NAME)
+            .key(object_key.to_string())
+            .send()
+            .await
+        {
+            Ok(_) => {
+                let sql = if object_key.contains("profile/profile_") {
+                    "UPDATE public.users SET profile_uri = null WHERE profile_uri = $1"
+                } else if object_key.contains("cover/cover_") {
+                    "UPDATE public.users SET cover_uri = null WHERE cover_uri = $1"
+                } else if object_key.contains("plates/plates_") {
+                    "UPDATE public.plates SET plates_uri = null WHERE plates_uri = $1"
+                } else {
+                    return StatusCode::BAD_REQUEST;
+                };
+                match sqlx::query(sql).bind(object_key).execute(&pool).await {
+                    Ok(_) => StatusCode::OK,
+                    Err(_) => StatusCode::INTERNAL_SERVER_ERROR,
+                }
+            }
+            Err(_) => StatusCode::INTERNAL_SERVER_ERROR,
+        },
+        None => StatusCode::BAD_REQUEST,
+    }
+}
+
+pub async fn update_object_key(
+    Query(params): Query<HashMap<String, String>>,
+    State(AppState { pool, client: _ }): State<AppState>,
+) -> StatusCode {
+    let object_id = match params.get("object_id") {
+        Some(some) => match some.parse::<i32>() {
+            Ok(ok) => ok,
+            Err(_) => return StatusCode::BAD_REQUEST,
+        },
+        None => return StatusCode::BAD_REQUEST,
+    };
+    let object_key = match params.get("object_key") {
+        Some(some) => some.to_string(),
+        None => return StatusCode::BAD_REQUEST,
+    };
+    let sql = if object_key.contains("profile/profile_") {
+        "UPDATE public.users SET profile_uri = $1 WHERE users_id = $2"
+    } else if object_key.contains("cover/cover_") {
+        "UPDATE public.users SET cover_uri = $1 WHERE users_id = $2"
+    } else if object_key.contains("plates/plates_") {
+        "UPDATE public.plates SET plates_uri = $1 WHERE plates_id = $2"
+    } else {
+        return StatusCode::BAD_REQUEST;
+    };
+    match sqlx::query(sql)
+        .bind(object_key)
+        .bind(object_id)
+        .execute(&pool)
+        .await
+    {
+        Ok(_) => StatusCode::OK,
+        Err(_) => StatusCode::INTERNAL_SERVER_ERROR,
+    }
+}

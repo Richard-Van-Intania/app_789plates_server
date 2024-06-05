@@ -7,10 +7,8 @@ use app_789plates_server::{
     },
     constants::{AWS_ACCESS_KEY_ID, AWS_REGION, AWS_SECRET_ACCESS_KEY},
     middleware::{validate_api_key, validate_email, validate_email_unique, validate_token},
-    profile::{
-        edit_information, edit_name, edit_profile_photo, fetch_profile, generate_presigned_url,
-        update_profile_photo,
-    },
+    object_operations::{delete_object, generate_presigned_url, update_object_key},
+    profile::{edit_information, edit_name, fetch_profile, update_profile_photo},
     shutdown::shutdown_signal,
 };
 use aws_sdk_s3::Client;
@@ -148,14 +146,22 @@ async fn main() {
             "/edit_information",
             put(edit_information.layer(middleware::from_fn(validate_token))),
         )
+        .route(
+            "/generate_presigned_url",
+            get(generate_presigned_url.layer(middleware::from_fn(validate_token))),
+        )
+        .route(
+            "/delete_object",
+            delete(delete_object.layer(middleware::from_fn(validate_token))),
+        )
+        .route(
+            "/update_object_key",
+            put(update_object_key.layer(middleware::from_fn(validate_token))),
+        )
         // here
         .route(
             "/update_profile_photo",
-            put(update_profile_photo.layer(middleware::from_fn(validate_api_key))),
-        )
-        .route(
-            "/generate_presigned_url",
-            post(generate_presigned_url.layer(middleware::from_fn(validate_api_key))),
+            put(update_profile_photo.layer(middleware::from_fn(validate_token))),
         )
         .layer(TraceLayer::new_for_http())
         .layer(TimeoutLayer::new(time::Duration::from_secs(15)))

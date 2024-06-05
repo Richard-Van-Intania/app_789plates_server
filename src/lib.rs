@@ -1,10 +1,10 @@
 pub mod app_state;
 pub mod auth;
 pub mod authentication;
-pub mod aws_operations;
 pub mod constants;
 pub mod mailer;
 pub mod middleware;
+pub mod object_operations;
 pub mod plates;
 pub mod profile;
 pub mod shutdown;
