@@ -46,10 +46,12 @@ async fn main() {
     env::set_var("AWS_REGION", AWS_REGION);
     let config = aws_config::load_from_env().await;
     let client = aws_sdk_s3::Client::new(&config);
+
     // postgresql
     let pool = PgPool::connect("postgres://postgres:postgres@localhost:5432/production")
         .await
         .unwrap();
+
     let state = AppState { pool, client };
     let app = Router::new()
         .route(
