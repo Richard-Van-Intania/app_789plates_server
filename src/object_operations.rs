@@ -31,44 +31,11 @@ pub async fn generate_presigned_url(
     }
 }
 
-pub async fn delete_object(
+pub async fn update_object(
     Query(params): Query<HashMap<String, String>>,
     State(AppState { pool, client }): State<AppState>,
 ) -> StatusCode {
-    match params.get("object_key") {
-        Some(object_key) => match client
-            .delete_object()
-            .bucket(BUCKET_NAME)
-            .key(object_key.to_string())
-            .send()
-            .await
-        {
-            Ok(_) => {
-                let sql = if object_key.contains("profile/profile_") {
-                    "UPDATE public.users SET profile_uri = null WHERE profile_uri = $1"
-                } else if object_key.contains("cover/cover_") {
-                    "UPDATE public.users SET cover_uri = null WHERE cover_uri = $1"
-                } else if object_key.contains("plates/plates_") {
-                    "UPDATE public.plates SET plates_uri = null WHERE plates_uri = $1"
-                } else {
-                    return StatusCode::BAD_REQUEST;
-                };
-                match sqlx::query(sql).bind(object_key).execute(&pool).await {
-                    Ok(_) => StatusCode::OK,
-                    Err(_) => StatusCode::INTERNAL_SERVER_ERROR,
-                }
-            }
-            Err(_) => StatusCode::INTERNAL_SERVER_ERROR,
-        },
-        None => StatusCode::BAD_REQUEST,
-    }
-}
-
-pub async fn update_object_key(
-    Query(params): Query<HashMap<String, String>>,
-    State(AppState { pool, client: _ }): State<AppState>,
-) -> StatusCode {
-    let object_id = match params.get("object_id") {
+    let id = match params.get("id") {
         Some(some) => match some.parse::<i32>() {
             Ok(ok) => ok,
             Err(_) => return StatusCode::BAD_REQUEST,
@@ -79,6 +46,35 @@ pub async fn update_object_key(
         Some(some) => some.to_string(),
         None => return StatusCode::BAD_REQUEST,
     };
+
+    let sql = if object_key.contains("profile/profile_") {
+        "SELECT profile_uri FROM public.users WHERE users_id = $1"
+    } else if object_key.contains("cover/cover_") {
+        "SELECT cover_uri FROM public.users WHERE users_id = $1"
+    } else if object_key.contains("plates/plates_") {
+        "SELECT plates_uri FROM public.plates WHERE plates_id = $1"
+    } else {
+        return StatusCode::BAD_REQUEST;
+    };
+    let fetch: Result<(Option<String>,), sqlx::Error> =
+        sqlx::query_as(sql).bind(id).fetch_one(&pool).await;
+    let _ = match fetch {
+        Ok((ok,)) => match ok {
+            Some(key) => match client
+                .delete_object()
+                .bucket(BUCKET_NAME)
+                .key(key)
+                .send()
+                .await
+            {
+                Ok(_) => (),
+                Err(_) => return StatusCode::INTERNAL_SERVER_ERROR,
+            },
+            None => (),
+        },
+        Err(_) => return StatusCode::INTERNAL_SERVER_ERROR,
+    };
+
     let sql = if object_key.contains("profile/profile_") {
         "UPDATE public.users SET profile_uri = $1 WHERE users_id = $2"
     } else if object_key.contains("cover/cover_") {
@@ -90,7 +86,7 @@ pub async fn update_object_key(
     };
     match sqlx::query(sql)
         .bind(object_key)
-        .bind(object_id)
+        .bind(id)
         .execute(&pool)
         .await
     {

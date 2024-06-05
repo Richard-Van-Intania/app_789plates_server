@@ -7,7 +7,7 @@ use app_789plates_server::{
     },
     constants::{AWS_ACCESS_KEY_ID, AWS_REGION, AWS_SECRET_ACCESS_KEY},
     middleware::{validate_api_key, validate_email, validate_email_unique, validate_token},
-    object_operations::{delete_object, generate_presigned_url, update_object_key},
+    object_operations::{generate_presigned_url, update_object},
     profile::{edit_information, edit_name, fetch_profile, update_profile_photo},
     shutdown::shutdown_signal,
 };
@@ -153,12 +153,8 @@ async fn main() {
             get(generate_presigned_url.layer(middleware::from_fn(validate_token))),
         )
         .route(
-            "/delete_object",
-            delete(delete_object.layer(middleware::from_fn(validate_token))),
-        )
-        .route(
-            "/update_object_key",
-            put(update_object_key.layer(middleware::from_fn(validate_token))),
+            "/update_object",
+            put(update_object.layer(middleware::from_fn(validate_token))),
         )
         // here
         .route(
