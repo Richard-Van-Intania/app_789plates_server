@@ -8,7 +8,7 @@ use app_789plates_server::{
     constants::{AWS_ACCESS_KEY_ID, AWS_REGION, AWS_SECRET_ACCESS_KEY},
     middleware::{validate_api_key, validate_email, validate_email_unique, validate_token},
     object_operations::{generate_presigned_url, update_object},
-    profile::{edit_information, edit_name, fetch_profile, update_profile_photo},
+    profile::{edit_information, edit_name, fetch_profile},
     shutdown::shutdown_signal,
 };
 use aws_sdk_s3::Client;
@@ -157,10 +157,10 @@ async fn main() {
             put(update_object.layer(middleware::from_fn(validate_token))),
         )
         // here
-        .route(
-            "/update_profile_photo",
-            put(update_profile_photo.layer(middleware::from_fn(validate_token))),
-        )
+        // .route(
+        //     "/update_profile_photo",
+        //     put(update_profile_photo.layer(middleware::from_fn(validate_token))),
+        // )
         .layer(TraceLayer::new_for_http())
         .layer(TimeoutLayer::new(time::Duration::from_secs(15)))
         .with_state(state);

@@ -2,7 +2,6 @@ use crate::{app_state::AppState, auth::Authentication};
 use axum::{
     extract::{Query, State},
     http::StatusCode,
-    response::IntoResponse,
     Json,
 };
 use serde::{Deserialize, Serialize};
@@ -88,9 +87,3 @@ pub async fn edit_information(
         None => StatusCode::BAD_REQUEST,
     }
 }
-
-// here
-
-pub async fn update_cover_photo() -> impl IntoResponse {}
-
-pub async fn update_profile_photo() -> impl IntoResponse {}
