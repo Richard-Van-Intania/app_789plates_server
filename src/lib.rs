@@ -8,3 +8,4 @@ pub mod object_operations;
 pub mod plates;
 pub mod profile;
 pub mod shutdown;
+pub mod transfer_plates;

@@ -70,3 +70,8 @@ pub async fn add_plates(
 // delete
 // on/off selling
 // on off pin
+
+// query plates
+// search plates
+
+// transfer plates
