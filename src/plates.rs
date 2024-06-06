@@ -21,6 +21,7 @@ pub struct Plates {
     pub back_number: i32,
     pub special_front_id: Option<i32>,
     pub vehicle_type_id: i32,
+    pub price: i32,
 }
 
 pub async fn add_plates(
@@ -52,7 +53,10 @@ pub async fn add_plates(
                     .fetch_one(&pool)
                     .await;
                 match insert {
-                    Ok((plates_id,)) => Ok(plates_id.to_string()),
+                    Ok((plates_id,)) => {
+                        // add SELECT * FROM public.price_history ORDER BY price_history_id ASC
+                        Ok(plates_id.to_string())
+                    }
                     Err(_) => Err(StatusCode::INTERNAL_SERVER_ERROR),
                 }
             }
