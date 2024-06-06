@@ -64,3 +64,9 @@ pub async fn add_plates(
         Err(_) => Err(StatusCode::INTERNAL_SERVER_ERROR),
     }
 }
+
+// edit price
+// edit photos
+// delete
+// on/off selling
+// on off pin
