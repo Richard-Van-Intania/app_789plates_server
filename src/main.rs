@@ -1,6 +1,5 @@
 use app_789plates_server::{
     app_state::AppState,
-    auth::Authentication,
     authentication::{
         change_password, create_new_account, create_verification, create_verification_forgot,
         delete_account, renew_token, reset_password, sign_in, validate_verification,
@@ -12,27 +11,16 @@ use app_789plates_server::{
     profile::{edit_information, edit_name, fetch_profile},
     shutdown::shutdown_signal,
 };
-use aws_sdk_s3::Client;
 use axum::{
-    body::{to_bytes, Body, Bytes},
-    extract::{DefaultBodyLimit, FromRef, Query, Request, State},
     handler::Handler,
-    http::StatusCode,
-    middleware::{self, Next},
-    response::{IntoResponse, Response},
+    middleware::{self},
     routing::{delete, get, post, put},
-    Json, Router,
+    Router,
 };
-use chrono::Local;
-use sqlx::{PgPool, Pool, Postgres};
-use std::{array::from_ref, collections::HashMap, env, time};
-use tokio::{fs, time::sleep};
+use sqlx::PgPool;
+use std::{env, time};
 use tower::ServiceBuilder;
-use tower_http::{
-    services::{ServeDir, ServeFile},
-    timeout::TimeoutLayer,
-    trace::TraceLayer,
-};
+use tower_http::{timeout::TimeoutLayer, trace::TraceLayer};
 
 #[tokio::main]
 async fn main() {
@@ -157,11 +145,11 @@ async fn main() {
             "/update_object",
             put(update_object.layer(middleware::from_fn(validate_token))),
         )
-        // here
         .route(
             "/add_plates",
             post(add_plates.layer(middleware::from_fn(validate_token))),
         )
+        // here
         .layer(TraceLayer::new_for_http())
         .layer(TimeoutLayer::new(time::Duration::from_secs(15)))
         .with_state(state);
