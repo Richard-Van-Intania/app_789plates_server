@@ -54,9 +54,16 @@ pub async fn add_plates(
                     .await;
                 match insert {
                     Ok((plates_id,)) => {
-                        // add SELECT * FROM public.price_history ORDER BY price_history_id ASC
-                        // here
-                        Ok(plates_id.to_string())
+                        let insert_price = sqlx::query("INSERT INTO public.price_history(plates_id, price, add_date) VALUES ($1, $2, $3)")
+                            .bind(plates_id)
+                            .bind(payload.price)
+                            .bind(add_date)
+                            .execute(&pool)
+                            .await;
+                        match insert_price {
+                            Ok(_) => Ok(plates_id.to_string()),
+                            Err(_) => Err(StatusCode::INTERNAL_SERVER_ERROR),
+                        }
                     }
                     Err(_) => Err(StatusCode::INTERNAL_SERVER_ERROR),
                 }
@@ -67,6 +74,7 @@ pub async fn add_plates(
 }
 
 // todo!()
+// add pattern_x
 // add plates
 // delete plates
 
