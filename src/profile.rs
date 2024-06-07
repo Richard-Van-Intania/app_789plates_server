@@ -1,4 +1,4 @@
-use crate::{app_state::AppState, auth::Authentication};
+use crate::{app_state::AppState, authentication::Authentication};
 use axum::{
     extract::{Query, State},
     http::StatusCode,

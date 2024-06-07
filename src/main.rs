@@ -6,9 +6,9 @@ use app_789plates_server::{
     },
     constants::{AWS_ACCESS_KEY_ID, AWS_REGION, AWS_SECRET_ACCESS_KEY},
     middleware::{validate_api_key, validate_email, validate_email_unique, validate_token},
-    object_operations::{generate_presigned_url, update_object},
     plates::add_plates,
     profile::{edit_information, edit_name, fetch_profile},
+    s3_operations::{generate_presigned_url, update_object},
     shutdown::shutdown_signal,
 };
 use axum::{

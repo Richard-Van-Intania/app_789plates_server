@@ -1,11 +1,12 @@
 pub mod app_state;
-pub mod auth;
 pub mod authentication;
 pub mod constants;
 pub mod mailer;
 pub mod middleware;
-pub mod object_operations;
 pub mod plates;
 pub mod profile;
+pub mod query_plates;
+pub mod s3_operations;
+pub mod search_plates;
 pub mod shutdown;
 pub mod transfer_plates;

@@ -1,6 +1,6 @@
 use crate::{
     app_state::AppState,
-    auth::{Authentication, Claims},
+    authentication::{Authentication, Claims},
     constants::{ACCESS_TOKEN_KEY, API_KEY, LIMIT},
 };
 use axum::{

@@ -19,7 +19,7 @@ pub struct Plates {
     pub unique_text: String,
     pub front_number: i32,
     pub back_number: i32,
-    pub special_front_id: Option<i32>,
+    pub special_front_id: i32,
     pub vehicle_type_id: i32,
     pub price: i32,
 }
@@ -65,13 +65,19 @@ pub async fn add_plates(
     }
 }
 
-// edit price
-// edit photos
-// delete
+// todo!()
+// add plates
+// delete plates
+
+// update price
+
+// add photo
+// delete photo
+// update photo
+
 // on/off selling
-// on off pin
+// on/off pin
 
-// query plates
-// search plates
-
-// transfer plates
+// add total
+// delete total
+// update total
