@@ -55,6 +55,7 @@ pub async fn add_plates(
                 match insert {
                     Ok((plates_id,)) => {
                         // add SELECT * FROM public.price_history ORDER BY price_history_id ASC
+                        // here
                         Ok(plates_id.to_string())
                     }
                     Err(_) => Err(StatusCode::INTERNAL_SERVER_ERROR),
