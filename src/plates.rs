@@ -24,10 +24,15 @@ pub struct Plates {
     pub price: i32,
 }
 
+#[derive(Debug, Serialize, Deserialize)]
+pub struct PlatesId {
+    pub plates_id: i32,
+}
+
 pub async fn add_plates(
     State(AppState { pool, client: _ }): State<AppState>,
     Json(payload): Json<Plates>,
-) -> Result<String, StatusCode> {
+) -> Result<Json<PlatesId>, StatusCode> {
     let unique_text = format!(
         "province_id({})-vehicle_type_id({})-front_number({})-front_text({})-back_number({})",
         payload.province_id,
@@ -70,7 +75,7 @@ pub async fn add_plates(
                             .execute(&pool)
                             .await;
                         match insert_price {
-                            Ok(_) => Ok(plates_id.to_string()),
+                            Ok(_) => Ok(Json(PlatesId { plates_id })),
                             Err(_) => Err(StatusCode::INTERNAL_SERVER_ERROR),
                         }
                     }
@@ -79,6 +84,24 @@ pub async fn add_plates(
             }
         },
         Err(_) => Err(StatusCode::INTERNAL_SERVER_ERROR),
+    }
+}
+
+pub async fn delete_plates(
+    State(AppState { pool, client: _ }): State<AppState>,
+    Json(PlatesId { plates_id }): Json<PlatesId>,
+) -> StatusCode {
+    let delete: Result<Option<(i32,)>, sqlx::Error> =
+        sqlx::query_as("DELETE FROM public.plates WHERE plates_id = $1 RETURNING plates_id")
+            .bind(plates_id)
+            .fetch_optional(&pool)
+            .await;
+    match delete {
+        Ok(ok) => match ok {
+            Some(_) => StatusCode::OK,
+            None => StatusCode::BAD_REQUEST,
+        },
+        Err(_) => StatusCode::INTERNAL_SERVER_ERROR,
     }
 }
 

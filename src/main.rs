@@ -6,7 +6,7 @@ use app_789plates_server::{
     },
     constants::{AWS_ACCESS_KEY_ID, AWS_REGION, AWS_SECRET_ACCESS_KEY},
     middleware::{validate_api_key, validate_email, validate_email_unique, validate_token},
-    plates::add_plates,
+    plates::{add_plates, delete_plates},
     profile::{edit_information, edit_name, fetch_profile},
     s3_operations::{generate_presigned_url, update_object},
     shutdown::shutdown_signal,
@@ -148,6 +148,10 @@ async fn main() {
         .route(
             "/add_plates",
             post(add_plates.layer(middleware::from_fn(validate_token))),
+        )
+        .route(
+            "/delete_plates",
+            delete(delete_plates.layer(middleware::from_fn(validate_token))),
         )
         // here
         .layer(TraceLayer::new_for_http())
