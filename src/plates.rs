@@ -29,7 +29,7 @@ pub struct PlatesId {
     pub plates_id: i32,
 }
 
-pub async fn add_plates(
+pub async fn insert_plates(
     State(AppState { pool, client: _ }): State<AppState>,
     Json(payload): Json<Plates>,
 ) -> Result<Json<PlatesId>, StatusCode> {
@@ -105,20 +105,145 @@ pub async fn delete_plates(
     }
 }
 
+pub async fn insert_price(
+    State(AppState { pool, client: _ }): State<AppState>,
+    Json(payload): Json<Plates>,
+) -> StatusCode {
+    let add_date = Utc::now();
+    let insert: Result<Option<(i32,)>, sqlx::Error> = sqlx::query_as("INSERT INTO public.price_history(plates_id, price, add_date) VALUES ($1, $2, $3) RETURNING plates_id")
+        .bind(payload.plates_id)
+        .bind(payload.price)
+        .bind(add_date)
+        .fetch_optional(&pool)
+        .await;
+    match insert {
+        Ok(ok) => match ok {
+            Some(_) => StatusCode::OK,
+            None => StatusCode::BAD_REQUEST,
+        },
+        Err(_) => StatusCode::INTERNAL_SERVER_ERROR,
+    }
+}
+
+pub async fn update_plates_uri(
+    State(AppState { pool, client: _ }): State<AppState>,
+    Json(payload): Json<Plates>,
+) -> StatusCode {
+    let update: Result<Option<(i32,)>, sqlx::Error> = sqlx::query_as(
+        "UPDATE public.plates SET plates_uri = $1 WHERE plates_id = $2 RETURNING plates_id",
+    )
+    .bind(payload.plates_uri)
+    .bind(payload.plates_id)
+    .fetch_optional(&pool)
+    .await;
+    match update {
+        Ok(ok) => match ok {
+            Some(_) => StatusCode::OK,
+            None => StatusCode::BAD_REQUEST,
+        },
+        Err(_) => StatusCode::INTERNAL_SERVER_ERROR,
+    }
+}
+
+pub async fn update_information(
+    State(AppState { pool, client: _ }): State<AppState>,
+    Json(payload): Json<Plates>,
+) -> StatusCode {
+    let update: Result<Option<(i32,)>, sqlx::Error> = sqlx::query_as(
+        "UPDATE public.plates SET information = $1 WHERE plates_id = $2 RETURNING plates_id",
+    )
+    .bind(payload.information)
+    .bind(payload.plates_id)
+    .fetch_optional(&pool)
+    .await;
+    match update {
+        Ok(ok) => match ok {
+            Some(_) => StatusCode::OK,
+            None => StatusCode::BAD_REQUEST,
+        },
+        Err(_) => StatusCode::INTERNAL_SERVER_ERROR,
+    }
+}
+
+pub async fn update_is_selling(
+    State(AppState { pool, client: _ }): State<AppState>,
+    Json(payload): Json<Plates>,
+) -> StatusCode {
+    let update: Result<Option<(i32,)>, sqlx::Error> = sqlx::query_as(
+        "UPDATE public.plates SET is_selling = $1 WHERE plates_id = $2 RETURNING plates_id",
+    )
+    .bind(payload.is_selling)
+    .bind(payload.plates_id)
+    .fetch_optional(&pool)
+    .await;
+    match update {
+        Ok(ok) => match ok {
+            Some(_) => StatusCode::OK,
+            None => StatusCode::BAD_REQUEST,
+        },
+        Err(_) => StatusCode::INTERNAL_SERVER_ERROR,
+    }
+}
+
+pub async fn update_is_pin(
+    State(AppState { pool, client: _ }): State<AppState>,
+    Json(payload): Json<Plates>,
+) -> StatusCode {
+    let update: Result<Option<(i32,)>, sqlx::Error> = sqlx::query_as(
+        "UPDATE public.plates SET is_pin = $1 WHERE plates_id = $2 RETURNING plates_id",
+    )
+    .bind(payload.is_pin)
+    .bind(payload.plates_id)
+    .fetch_optional(&pool)
+    .await;
+    match update {
+        Ok(ok) => match ok {
+            Some(_) => StatusCode::OK,
+            None => StatusCode::BAD_REQUEST,
+        },
+        Err(_) => StatusCode::INTERNAL_SERVER_ERROR,
+    }
+}
+
+pub async fn update_total(
+    State(AppState { pool, client: _ }): State<AppState>,
+    Json(payload): Json<Plates>,
+) -> StatusCode {
+    let update: Result<Option<(i32,)>, sqlx::Error> = sqlx::query_as(
+        "UPDATE public.plates SET total = $1 WHERE plates_id = $2 RETURNING plates_id",
+    )
+    .bind(payload.total)
+    .bind(payload.plates_id)
+    .fetch_optional(&pool)
+    .await;
+    match update {
+        Ok(ok) => match ok {
+            Some(_) => StatusCode::OK,
+            None => StatusCode::BAD_REQUEST,
+        },
+        Err(_) => StatusCode::INTERNAL_SERVER_ERROR,
+    }
+}
+
+pub async fn update_users_id(
+    State(AppState { pool, client: _ }): State<AppState>,
+    Json(payload): Json<Plates>,
+) -> StatusCode {
+    let update: Result<Option<(i32,)>, sqlx::Error> = sqlx::query_as(
+        "UPDATE public.plates SET users_id = $1 WHERE plates_id = $2 RETURNING plates_id",
+    )
+    .bind(payload.users_id)
+    .bind(payload.plates_id)
+    .fetch_optional(&pool)
+    .await;
+    match update {
+        Ok(ok) => match ok {
+            Some(_) => StatusCode::OK,
+            None => StatusCode::BAD_REQUEST,
+        },
+        Err(_) => StatusCode::INTERNAL_SERVER_ERROR,
+    }
+}
+
 // todo!()
 // add pattern_x
-// add plates
-// delete plates
-
-// update price
-
-// add photo
-// delete photo
-// update photo
-
-// on/off selling
-// on/off pin
-
-// add total
-// delete total
-// update total

@@ -6,7 +6,10 @@ use app_789plates_server::{
     },
     constants::{AWS_ACCESS_KEY_ID, AWS_REGION, AWS_SECRET_ACCESS_KEY},
     middleware::{validate_api_key, validate_email, validate_email_unique, validate_token},
-    plates::{add_plates, delete_plates},
+    plates::{
+        delete_plates, insert_plates, insert_price, update_information, update_is_pin,
+        update_is_selling, update_plates_uri, update_total, update_users_id,
+    },
     profile::{edit_information, edit_name, fetch_profile},
     s3_operations::{generate_presigned_url, update_object},
     shutdown::shutdown_signal,
@@ -145,15 +148,43 @@ async fn main() {
             "/update_object",
             put(update_object.layer(middleware::from_fn(validate_token))),
         )
+        // here
         .route(
-            "/add_plates",
-            post(add_plates.layer(middleware::from_fn(validate_token))),
+            "/insert_plates",
+            post(insert_plates.layer(middleware::from_fn(validate_token))),
         )
         .route(
             "/delete_plates",
             delete(delete_plates.layer(middleware::from_fn(validate_token))),
         )
-        // here
+        .route(
+            "/insert_price",
+            post(insert_price.layer(middleware::from_fn(validate_token))),
+        )
+        .route(
+            "/update_plates_uri",
+            put(update_plates_uri.layer(middleware::from_fn(validate_token))),
+        )
+        .route(
+            "/update_information",
+            put(update_information.layer(middleware::from_fn(validate_token))),
+        )
+        .route(
+            "/update_is_selling",
+            put(update_is_selling.layer(middleware::from_fn(validate_token))),
+        )
+        .route(
+            "/update_is_pin",
+            put(update_is_pin.layer(middleware::from_fn(validate_token))),
+        )
+        .route(
+            "/update_total",
+            put(update_total.layer(middleware::from_fn(validate_token))),
+        )
+        .route(
+            "/update_users_id",
+            put(update_users_id.layer(middleware::from_fn(validate_token))),
+        )
         .layer(TraceLayer::new_for_http())
         .layer(TimeoutLayer::new(time::Duration::from_secs(15)))
         .with_state(state);
