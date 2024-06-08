@@ -3,6 +3,7 @@ pub mod authentication;
 pub mod constants;
 pub mod mailer;
 pub mod middleware;
+pub mod pattern;
 pub mod plates;
 pub mod profile;
 pub mod query_plates;
