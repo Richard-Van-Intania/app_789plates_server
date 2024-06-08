@@ -6,3 +6,4 @@
 // rating
 // liked_plates
 // saved_plates
+// hashtag
