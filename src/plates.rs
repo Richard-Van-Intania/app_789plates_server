@@ -258,6 +258,12 @@ pub async fn update_users_id(
     }
 }
 
+pub async fn analyze_new_pattern(
+    State(AppState { pool, client: _ }): State<AppState>,
+) -> StatusCode {
+    StatusCode::INTERNAL_SERVER_ERROR
+}
+
 pub async fn analyze_pattern(
     plates_id: i32,
     front_text: &String,
@@ -689,7 +695,14 @@ pub async fn analyze_pattern(
             .await;
     }
     // pattern_xyz
-    if false {
+    if back_number == 123
+        || back_number == 234
+        || back_number == 345
+        || back_number == 456
+        || back_number == 567
+        || back_number == 678
+        || back_number == 789
+    {
         let _ = sqlx::query("INSERT INTO public.pattern_xyz(plates_id, add_date) VALUES ($1, $2)")
             .bind(plates_id)
             .bind(add_date)
@@ -697,7 +710,14 @@ pub async fn analyze_pattern(
             .await;
     }
     // pattern_zyx
-    if false {
+    if back_number == 987
+        || back_number == 876
+        || back_number == 765
+        || back_number == 654
+        || back_number == 543
+        || back_number == 432
+        || back_number == 321
+    {
         let _ = sqlx::query("INSERT INTO public.pattern_zyx(plates_id, add_date) VALUES ($1, $2)")
             .bind(plates_id)
             .bind(add_date)
@@ -705,7 +725,13 @@ pub async fn analyze_pattern(
             .await;
     }
     // pattern_wxyz
-    if false {
+    if back_number == 1234
+        || back_number == 2345
+        || back_number == 3456
+        || back_number == 4567
+        || back_number == 5678
+        || back_number == 6789
+    {
         let _ = sqlx::query("INSERT INTO public.pattern_wxyz(plates_id, add_date) VALUES ($1, $2)")
             .bind(plates_id)
             .bind(add_date)
@@ -713,7 +739,13 @@ pub async fn analyze_pattern(
             .await;
     }
     // pattern_zyxw
-    if false {
+    if back_number == 9876
+        || back_number == 8765
+        || back_number == 7654
+        || back_number == 6543
+        || back_number == 5432
+        || back_number == 4321
+    {
         let _ = sqlx::query("INSERT INTO public.pattern_zyxw(plates_id, add_date) VALUES ($1, $2)")
             .bind(plates_id)
             .bind(add_date)
@@ -721,7 +753,16 @@ pub async fn analyze_pattern(
             .await;
     }
     // pattern_x00
-    if false {
+    if back_number == 100
+        || back_number == 200
+        || back_number == 300
+        || back_number == 400
+        || back_number == 500
+        || back_number == 600
+        || back_number == 700
+        || back_number == 800
+        || back_number == 900
+    {
         let _ = sqlx::query("INSERT INTO public.pattern_x00(plates_id, add_date) VALUES ($1, $2)")
             .bind(plates_id)
             .bind(add_date)
@@ -729,7 +770,16 @@ pub async fn analyze_pattern(
             .await;
     }
     // pattern_x000
-    if false {
+    if back_number == 1000
+        || back_number == 2000
+        || back_number == 3000
+        || back_number == 4000
+        || back_number == 5000
+        || back_number == 6000
+        || back_number == 7000
+        || back_number == 8000
+        || back_number == 9000
+    {
         let _ = sqlx::query("INSERT INTO public.pattern_x000(plates_id, add_date) VALUES ($1, $2)")
             .bind(plates_id)
             .bind(add_date)
@@ -737,7 +787,16 @@ pub async fn analyze_pattern(
             .await;
     }
     // pattern_x99
-    if false {
+    if back_number == 199
+        || back_number == 299
+        || back_number == 399
+        || back_number == 499
+        || back_number == 599
+        || back_number == 699
+        || back_number == 799
+        || back_number == 899
+        || back_number == 999
+    {
         let _ = sqlx::query("INSERT INTO public.pattern_x99(plates_id, add_date) VALUES ($1, $2)")
             .bind(plates_id)
             .bind(add_date)
@@ -745,7 +804,16 @@ pub async fn analyze_pattern(
             .await;
     }
     // pattern_x999
-    if false {
+    if back_number == 1999
+        || back_number == 2999
+        || back_number == 3999
+        || back_number == 4999
+        || back_number == 5999
+        || back_number == 6999
+        || back_number == 7999
+        || back_number == 8999
+        || back_number == 9999
+    {
         let _ = sqlx::query("INSERT INTO public.pattern_x999(plates_id, add_date) VALUES ($1, $2)")
             .bind(plates_id)
             .bind(add_date)
