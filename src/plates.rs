@@ -46,7 +46,7 @@ pub async fn add_plates(
             Some(_) => Err(StatusCode::CONFLICT),
             None => {
                 let add_date = Utc::now();
-                let insert: Result<(i32,), sqlx::Error> = sqlx::query_as("INSERT INTO public.plates(front_text, province_id, plates_type_id, users_id, total, add_date, unique_text, front_number, back_number, special_front_id, vehicle_type_id) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) RETURNING plates_id")
+                let insert: Result<(i32,), sqlx::Error> = sqlx::query_as("INSERT INTO public.plates(front_text, province_id, plates_type_id, users_id, total, add_date, unique_text, front_number, back_number, special_front_id, vehicle_type_id, information) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12) RETURNING plates_id")
                     .bind(payload.front_text)
                     .bind(payload.province_id)
                     .bind(payload.plates_type_id)
@@ -58,6 +58,7 @@ pub async fn add_plates(
                     .bind(payload.back_number)
                     .bind(payload.special_front_id)
                     .bind(payload.vehicle_type_id)
+                    .bind(payload.information)
                     .fetch_one(&pool)
                     .await;
                 match insert {

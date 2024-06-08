@@ -8,3 +8,5 @@
 // saved_plates
 // hashtag
 // static plates image
+// notification
+// adaptive design ipad design
