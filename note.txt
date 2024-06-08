@@ -66,7 +66,7 @@ add plates multiple ui one by one accually
 
 
 // unique_text
-province_id(0)-vehicle_type_id(0)-front_number(0)-front_text(xxx)-number(0)
+province_id(1)-vehicle_type_id(1)-front_number(8)-front_text(กย)-back_number(9)
 
 // must query from db
 special_front_id
