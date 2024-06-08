@@ -753,7 +753,16 @@ pub async fn analyze_pattern(
             .await;
     }
     // pattern_x55
-    if false {
+    if back_number == 155
+        || back_number == 255
+        || back_number == 355
+        || back_number == 455
+        || back_number == 555
+        || back_number == 655
+        || back_number == 755
+        || back_number == 855
+        || back_number == 955
+    {
         let _ = sqlx::query("INSERT INTO public.pattern_x55(plates_id, add_date) VALUES ($1, $2)")
             .bind(plates_id)
             .bind(add_date)
@@ -761,7 +770,16 @@ pub async fn analyze_pattern(
             .await;
     }
     // pattern_x555
-    if false {
+    if back_number == 1555
+        || back_number == 2555
+        || back_number == 3555
+        || back_number == 4555
+        || back_number == 5555
+        || back_number == 6555
+        || back_number == 7555
+        || back_number == 8555
+        || back_number == 9555
+    {
         let _ = sqlx::query("INSERT INTO public.pattern_x555(plates_id, add_date) VALUES ($1, $2)")
             .bind(plates_id)
             .bind(add_date)
