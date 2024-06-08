@@ -368,7 +368,7 @@ pub async fn analyze_pattern(
             .await;
     }
     // pattern_xyy
-    if false {
+    if back_number > 99 && back_number < 1000 || false {
         let _ = sqlx::query("INSERT INTO public.pattern_xyy(plates_id, add_date) VALUES ($1, $2)")
             .bind(plates_id)
             .bind(add_date)
