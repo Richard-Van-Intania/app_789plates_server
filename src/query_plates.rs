@@ -7,3 +7,4 @@
 // liked_plates
 // saved_plates
 // hashtag
+// static plates image

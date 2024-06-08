@@ -20,6 +20,7 @@ pub struct Plates {
     pub users_id: i32,
     pub special_front_id: i32,
     pub province_id: i32,
+    pub information: Option<String>,
     pub price: i32,
 }
 
