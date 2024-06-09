@@ -368,15 +368,28 @@ pub async fn analyze_pattern(
             .await;
     }
     // pattern_xyy
-    if back_number > 99 && back_number < 1000 || false {
-        let _ = sqlx::query("INSERT INTO public.pattern_xyy(plates_id, add_date) VALUES ($1, $2)")
-            .bind(plates_id)
-            .bind(add_date)
-            .execute(pool)
-            .await;
+    if back_number > 99 && back_number < 1000 {
+        let list: Vec<char> = back_number.to_string().chars().collect();
+        let a = list[0];
+        let b = list[1];
+        let c = list[2];
+        if a != b && b == c {
+            let _ =
+                sqlx::query("INSERT INTO public.pattern_xyy(plates_id, add_date) VALUES ($1, $2)")
+                    .bind(plates_id)
+                    .bind(add_date)
+                    .execute(pool)
+                    .await;
+        }
     }
     // pattern_xyyy
-    if false {
+    // here
+    if back_number > 999 {
+        let list: Vec<char> = back_number.to_string().chars().collect();
+        let a = list[0];
+        let b = list[1];
+        let c = list[2];
+        let d = list[3];
         let _ = sqlx::query("INSERT INTO public.pattern_xyyy(plates_id, add_date) VALUES ($1, $2)")
             .bind(plates_id)
             .bind(add_date)
