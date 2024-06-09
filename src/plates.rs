@@ -260,5 +260,7 @@ pub async fn update_users_id(
 pub async fn analyze_new_pattern(
     State(AppState { pool, client: _ }): State<AppState>,
 ) -> StatusCode {
-    StatusCode::INTERNAL_SERVER_ERROR
+    // SELECT * FROM public.plates
+    // analyze one by one
+    StatusCode::OK
 }

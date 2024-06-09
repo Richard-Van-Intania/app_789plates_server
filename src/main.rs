@@ -7,8 +7,8 @@ use app_789plates_server::{
     constants::{AWS_ACCESS_KEY_ID, AWS_REGION, AWS_SECRET_ACCESS_KEY},
     middleware::{validate_api_key, validate_email, validate_email_unique, validate_token},
     plates::{
-        delete_plates, insert_plates, insert_price, update_information, update_is_pin,
-        update_is_selling, update_plates_uri, update_total, update_users_id,
+        analyze_new_pattern, delete_plates, insert_plates, insert_price, update_information,
+        update_is_pin, update_is_selling, update_plates_uri, update_total, update_users_id,
     },
     profile::{edit_information, edit_name, fetch_profile},
     s3_operations::{generate_presigned_url, update_object},
@@ -184,6 +184,10 @@ async fn main() {
         .route(
             "/update_users_id",
             put(update_users_id.layer(middleware::from_fn(validate_token))),
+        )
+        .route(
+            "/analyze_new_pattern",
+            get(analyze_new_pattern.layer(middleware::from_fn(validate_api_key))),
         )
         .layer(TraceLayer::new_for_http())
         .layer(TimeoutLayer::new(time::Duration::from_secs(15)))

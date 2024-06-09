@@ -361,11 +361,17 @@ pub async fn analyze_pattern(
     }
     // pattern_xy
     if back_number > 9 && back_number < 100 {
-        let _ = sqlx::query("INSERT INTO public.pattern_xy(plates_id, add_date) VALUES ($1, $2)")
-            .bind(plates_id)
-            .bind(add_date)
-            .execute(pool)
-            .await;
+        let list: Vec<char> = back_number.to_string().chars().collect();
+        let a = list[0];
+        let b = list[1];
+        if a != b {
+            let _ =
+                sqlx::query("INSERT INTO public.pattern_xy(plates_id, add_date) VALUES ($1, $2)")
+                    .bind(plates_id)
+                    .bind(add_date)
+                    .execute(pool)
+                    .await;
+        }
     }
     // pattern_xyy
     if back_number > 99 && back_number < 1000 {
@@ -383,66 +389,83 @@ pub async fn analyze_pattern(
         }
     }
     // pattern_xyyy
-    // here
-    if back_number > 999 {
+    if back_number > 999 && back_number < 10000 {
         let list: Vec<char> = back_number.to_string().chars().collect();
         let a = list[0];
         let b = list[1];
         let c = list[2];
         let d = list[3];
-        let _ = sqlx::query("INSERT INTO public.pattern_xyyy(plates_id, add_date) VALUES ($1, $2)")
-            .bind(plates_id)
-            .bind(add_date)
-            .execute(pool)
-            .await;
+        if a != b && b == c && c == d {
+            let _ =
+                sqlx::query("INSERT INTO public.pattern_xyyy(plates_id, add_date) VALUES ($1, $2)")
+                    .bind(plates_id)
+                    .bind(add_date)
+                    .execute(pool)
+                    .await;
+        }
     }
     // pattern_xxyy
-    if false {
-        let _ = sqlx::query("INSERT INTO public.pattern_xxyy(plates_id, add_date) VALUES ($1, $2)")
-            .bind(plates_id)
-            .bind(add_date)
-            .execute(pool)
-            .await;
+    if back_number > 999 && back_number < 10000 {
+        let list: Vec<char> = back_number.to_string().chars().collect();
+        let a = list[0];
+        let b = list[1];
+        let c = list[2];
+        let d = list[3];
+        if a == b && c == d && a != c {
+            let _ =
+                sqlx::query("INSERT INTO public.pattern_xxyy(plates_id, add_date) VALUES ($1, $2)")
+                    .bind(plates_id)
+                    .bind(add_date)
+                    .execute(pool)
+                    .await;
+        }
     }
     // pattern_xyxy
-    if false {
-        let _ = sqlx::query("INSERT INTO public.pattern_xyxy(plates_id, add_date) VALUES ($1, $2)")
-            .bind(plates_id)
-            .bind(add_date)
-            .execute(pool)
-            .await;
+    if back_number > 999 && back_number < 10000 {
+        let list: Vec<char> = back_number.to_string().chars().collect();
+        let a = list[0];
+        let b = list[1];
+        let c = list[2];
+        let d = list[3];
+        if a == c && b == d && a != b {
+            let _ =
+                sqlx::query("INSERT INTO public.pattern_xyxy(plates_id, add_date) VALUES ($1, $2)")
+                    .bind(plates_id)
+                    .bind(add_date)
+                    .execute(pool)
+                    .await;
+        }
     }
     // pattern_xyyx
-    if false {
-        let _ = sqlx::query("INSERT INTO public.pattern_xyyx(plates_id, add_date) VALUES ($1, $2)")
-            .bind(plates_id)
-            .bind(add_date)
-            .execute(pool)
-            .await;
-    }
-    // pattern_yxx
-    if false {
-        let _ = sqlx::query("INSERT INTO public.pattern_yxx(plates_id, add_date) VALUES ($1, $2)")
-            .bind(plates_id)
-            .bind(add_date)
-            .execute(pool)
-            .await;
-    }
-    // pattern_yxxx
-    if false {
-        let _ = sqlx::query("INSERT INTO public.pattern_yxxx(plates_id, add_date) VALUES ($1, $2)")
-            .bind(plates_id)
-            .bind(add_date)
-            .execute(pool)
-            .await;
+    if back_number > 999 && back_number < 10000 {
+        let list: Vec<char> = back_number.to_string().chars().collect();
+        let a = list[0];
+        let b = list[1];
+        let c = list[2];
+        let d = list[3];
+        if a == d && b == c && a != b {
+            let _ =
+                sqlx::query("INSERT INTO public.pattern_xyyx(plates_id, add_date) VALUES ($1, $2)")
+                    .bind(plates_id)
+                    .bind(add_date)
+                    .execute(pool)
+                    .await;
+        }
     }
     // pattern_xyx
-    if false {
-        let _ = sqlx::query("INSERT INTO public.pattern_xyx(plates_id, add_date) VALUES ($1, $2)")
-            .bind(plates_id)
-            .bind(add_date)
-            .execute(pool)
-            .await;
+    if back_number > 99 && back_number < 1000 {
+        let list: Vec<char> = back_number.to_string().chars().collect();
+        let a = list[0];
+        let b = list[1];
+        let c = list[2];
+        if a != b && a == c {
+            let _ =
+                sqlx::query("INSERT INTO public.pattern_xyx(plates_id, add_date) VALUES ($1, $2)")
+                    .bind(plates_id)
+                    .bind(add_date)
+                    .execute(pool)
+                    .await;
+        }
     }
     // pattern_xyz
     if back_number == 123
