@@ -628,7 +628,7 @@ pub async fn analyze_pattern(
             .await;
     }
     // pattern_rakhang
-    if front_number == 0 || vehicle_type_id == 1 || front_text.starts_with("ฆ") {
+    if front_number == 0 && vehicle_type_id == 1 && front_text.starts_with("ฆ") {
         let _ =
             sqlx::query("INSERT INTO public.pattern_rakhang(plates_id, add_date) VALUES ($1, $2)")
                 .bind(plates_id)

@@ -260,7 +260,26 @@ pub async fn update_users_id(
 pub async fn analyze_new_pattern(
     State(AppState { pool, client: _ }): State<AppState>,
 ) -> StatusCode {
-    // SELECT * FROM public.plates
-    // analyze one by one
-    StatusCode::OK
+    let fetch: Result<Vec<(i32, String, i32, i32, i32)>, sqlx::Error> =
+        sqlx::query_as("SELECT plates_id, front_text, front_number, back_number, vehicle_type_id FROM public.plates").fetch_all(&pool).await;
+    match fetch {
+        Ok(ok) => {
+            let list = ok.iter();
+            let add_date = Utc::now();
+            for (plates_id, front_text, front_number, back_number, vehicle_type_id) in list {
+                analyze_pattern(
+                    *plates_id,
+                    front_text,
+                    *front_number,
+                    *back_number,
+                    add_date,
+                    *vehicle_type_id,
+                    &pool,
+                )
+                .await;
+            }
+            StatusCode::OK
+        }
+        Err(_) => StatusCode::INTERNAL_SERVER_ERROR,
+    }
 }
