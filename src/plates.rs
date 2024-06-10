@@ -99,24 +99,6 @@ pub async fn insert_plates(
     }
 }
 
-pub async fn delete_plates(
-    State(AppState { pool, client: _ }): State<AppState>,
-    Json(PlatesId { plates_id }): Json<PlatesId>,
-) -> StatusCode {
-    let delete: Result<Option<(i32,)>, sqlx::Error> =
-        sqlx::query_as("DELETE FROM public.plates WHERE plates_id = $1 RETURNING plates_id")
-            .bind(plates_id)
-            .fetch_optional(&pool)
-            .await;
-    match delete {
-        Ok(ok) => match ok {
-            Some(_) => StatusCode::OK,
-            None => StatusCode::BAD_REQUEST,
-        },
-        Err(_) => StatusCode::INTERNAL_SERVER_ERROR,
-    }
-}
-
 pub async fn insert_price(
     State(AppState { pool, client: _ }): State<AppState>,
     Json(payload): Json<Plates>,
@@ -249,6 +231,24 @@ pub async fn update_users_id(
     .fetch_optional(&pool)
     .await;
     match update {
+        Ok(ok) => match ok {
+            Some(_) => StatusCode::OK,
+            None => StatusCode::BAD_REQUEST,
+        },
+        Err(_) => StatusCode::INTERNAL_SERVER_ERROR,
+    }
+}
+
+pub async fn delete_plates(
+    State(AppState { pool, client: _ }): State<AppState>,
+    Json(PlatesId { plates_id }): Json<PlatesId>,
+) -> StatusCode {
+    let delete: Result<Option<(i32,)>, sqlx::Error> =
+        sqlx::query_as("DELETE FROM public.plates WHERE plates_id = $1 RETURNING plates_id")
+            .bind(plates_id)
+            .fetch_optional(&pool)
+            .await;
+    match delete {
         Ok(ok) => match ok {
             Some(_) => StatusCode::OK,
             None => StatusCode::BAD_REQUEST,
