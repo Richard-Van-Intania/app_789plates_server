@@ -1,12 +1,14 @@
 pub mod app_state;
 pub mod authentication;
 pub mod constants;
+pub mod hashtag;
 pub mod mailer;
 pub mod middleware;
 pub mod pattern;
 pub mod plates;
 pub mod profile;
 pub mod query;
+pub mod rating;
 pub mod s3_operations;
 pub mod search;
 pub mod shutdown;
