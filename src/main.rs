@@ -7,8 +7,8 @@ use app_789plates_server::{
     constants::{AWS_ACCESS_KEY_ID, AWS_REGION, AWS_SECRET_ACCESS_KEY},
     middleware::{validate_api_key, validate_email, validate_email_unique, validate_token},
     plates::{
-        analyze_new_pattern, delete_plates, insert_plates, insert_price, update_information,
-        update_is_pin, update_is_selling, update_total, update_users_id,
+        add_new_plates, analyze_new_pattern, delete_plates, edit_is_pin, edit_is_selling,
+        edit_plates_information, edit_total, insert_new_price,
     },
     profile::{edit_information, edit_name, fetch_profile},
     s3_operations::{generate_presigned_url, update_object},
@@ -151,7 +151,7 @@ async fn main() {
         // here
         .route(
             "/insert_plates",
-            post(insert_plates.layer(middleware::from_fn(validate_token))),
+            post(add_new_plates.layer(middleware::from_fn(validate_token))),
         )
         .route(
             "/delete_plates",
@@ -159,27 +159,23 @@ async fn main() {
         )
         .route(
             "/insert_price",
-            post(insert_price.layer(middleware::from_fn(validate_token))),
+            post(insert_new_price.layer(middleware::from_fn(validate_token))),
         )
         .route(
             "/update_information",
-            put(update_information.layer(middleware::from_fn(validate_token))),
+            put(edit_plates_information.layer(middleware::from_fn(validate_token))),
         )
         .route(
             "/update_is_selling",
-            put(update_is_selling.layer(middleware::from_fn(validate_token))),
+            put(edit_is_selling.layer(middleware::from_fn(validate_token))),
         )
         .route(
             "/update_is_pin",
-            put(update_is_pin.layer(middleware::from_fn(validate_token))),
+            put(edit_is_pin.layer(middleware::from_fn(validate_token))),
         )
         .route(
             "/update_total",
-            put(update_total.layer(middleware::from_fn(validate_token))),
-        )
-        .route(
-            "/update_users_id",
-            put(update_users_id.layer(middleware::from_fn(validate_token))),
+            put(edit_total.layer(middleware::from_fn(validate_token))),
         )
         .route(
             "/analyze_new_pattern",

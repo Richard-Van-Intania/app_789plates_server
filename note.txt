@@ -70,3 +70,4 @@ province_id(1)-vehicle_type_id(1)-front_number(8)-front_text(กย)-back_number
 
 // must query from db
 special_front_id
+// named by activity

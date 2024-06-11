@@ -29,7 +29,7 @@ pub struct PlatesId {
     pub plates_id: i32,
 }
 
-pub async fn insert_plates(
+pub async fn add_new_plates(
     State(AppState { pool, client: _ }): State<AppState>,
     Json(payload): Json<Plates>,
 ) -> Result<Json<PlatesId>, StatusCode> {
@@ -99,7 +99,7 @@ pub async fn insert_plates(
     }
 }
 
-pub async fn insert_price(
+pub async fn insert_new_price(
     State(AppState { pool, client: _ }): State<AppState>,
     Json(payload): Json<Plates>,
 ) -> StatusCode {
@@ -119,7 +119,7 @@ pub async fn insert_price(
     }
 }
 
-pub async fn update_information(
+pub async fn edit_plates_information(
     State(AppState { pool, client: _ }): State<AppState>,
     Json(payload): Json<Plates>,
 ) -> StatusCode {
@@ -139,7 +139,7 @@ pub async fn update_information(
     }
 }
 
-pub async fn update_is_selling(
+pub async fn edit_is_selling(
     State(AppState { pool, client: _ }): State<AppState>,
     Json(payload): Json<Plates>,
 ) -> StatusCode {
@@ -159,7 +159,7 @@ pub async fn update_is_selling(
     }
 }
 
-pub async fn update_is_pin(
+pub async fn edit_is_pin(
     State(AppState { pool, client: _ }): State<AppState>,
     Json(payload): Json<Plates>,
 ) -> StatusCode {
@@ -179,7 +179,7 @@ pub async fn update_is_pin(
     }
 }
 
-pub async fn update_total(
+pub async fn edit_total(
     State(AppState { pool, client: _ }): State<AppState>,
     Json(payload): Json<Plates>,
 ) -> StatusCode {
@@ -187,26 +187,6 @@ pub async fn update_total(
         "UPDATE public.plates SET total = $1 WHERE plates_id = $2 RETURNING plates_id",
     )
     .bind(payload.total)
-    .bind(payload.plates_id)
-    .fetch_optional(&pool)
-    .await;
-    match update {
-        Ok(ok) => match ok {
-            Some(_) => StatusCode::OK,
-            None => StatusCode::BAD_REQUEST,
-        },
-        Err(_) => StatusCode::INTERNAL_SERVER_ERROR,
-    }
-}
-
-pub async fn update_users_id(
-    State(AppState { pool, client: _ }): State<AppState>,
-    Json(payload): Json<Plates>,
-) -> StatusCode {
-    let update: Result<Option<(i32,)>, sqlx::Error> = sqlx::query_as(
-        "UPDATE public.plates SET users_id = $1 WHERE plates_id = $2 RETURNING plates_id",
-    )
-    .bind(payload.users_id)
     .bind(payload.plates_id)
     .fetch_optional(&pool)
     .await;
