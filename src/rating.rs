@@ -9,3 +9,6 @@ pub struct Rating {
     pub review: String,
     pub add_date: String,
 }
+
+// fetch_rating
+// add_new_rating

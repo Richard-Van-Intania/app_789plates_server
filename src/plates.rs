@@ -29,6 +29,12 @@ pub struct PlatesId {
     pub plates_id: i32,
 }
 
+// universal id
+#[derive(Debug, Serialize, Deserialize)]
+pub struct Id {
+    pub id: i32,
+}
+
 pub async fn add_new_plates(
     State(AppState { pool, client: _ }): State<AppState>,
     Json(payload): Json<Plates>,
