@@ -119,26 +119,6 @@ pub async fn insert_price(
     }
 }
 
-pub async fn update_plates_uri(
-    State(AppState { pool, client: _ }): State<AppState>,
-    Json(payload): Json<Plates>,
-) -> StatusCode {
-    let update: Result<Option<(i32,)>, sqlx::Error> = sqlx::query_as(
-        "UPDATE public.plates SET plates_uri = $1 WHERE plates_id = $2 RETURNING plates_id",
-    )
-    .bind(payload.plates_uri)
-    .bind(payload.plates_id)
-    .fetch_optional(&pool)
-    .await;
-    match update {
-        Ok(ok) => match ok {
-            Some(_) => StatusCode::OK,
-            None => StatusCode::BAD_REQUEST,
-        },
-        Err(_) => StatusCode::INTERNAL_SERVER_ERROR,
-    }
-}
-
 pub async fn update_information(
     State(AppState { pool, client: _ }): State<AppState>,
     Json(payload): Json<Plates>,
