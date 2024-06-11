@@ -40,8 +40,31 @@ pub async fn accept_plates(
     State(AppState { pool, client: _ }): State<AppState>,
     Json(payload): Json<Transfer>,
 ) -> StatusCode {
-    // change user
-    // update transfer
-
-    StatusCode::INTERNAL_SERVER_ERROR
+    let received_date = Utc::now();
+    let update: Result<Option<(i32, i32)>, sqlx::Error> = sqlx::query_as("UPDATE public.transfer_plates SET received = true, received_date = $1 WHERE transfer_plates_id = $2 RETURNING plates_id, store_id")
+        .bind(received_date)
+        .bind(payload.transfer_plates_id)
+        .fetch_optional(&pool)
+        .await;
+    match update {
+        Ok(ok) => match ok {
+            Some((plates_id, users_id)) => {
+                let update_users_id =
+                    sqlx::query("UPDATE public.plates SET users_id = $1 WHERE plates_id = $2")
+                        .bind(users_id)
+                        .bind(plates_id)
+                        .fetch_optional(&pool)
+                        .await;
+                match update_users_id {
+                    Ok(ok) => match ok {
+                        Some(_) => StatusCode::OK,
+                        None => StatusCode::BAD_REQUEST,
+                    },
+                    Err(_) => StatusCode::INTERNAL_SERVER_ERROR,
+                }
+            }
+            None => StatusCode::BAD_REQUEST,
+        },
+        Err(_) => StatusCode::INTERNAL_SERVER_ERROR,
+    }
 }
