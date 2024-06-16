@@ -1,6 +1,6 @@
 pub const EMAIL: &'static str = "pu.van.intania@gmail.com";
 pub const PASSWORD: &'static str = "pcma cjfo slth uhti";
-pub const MINUTES: i64 = 10;
+pub const MINUTES: i64 = 15;
 
 pub const NULL_ALIAS_STRING: &'static str = "null";
 pub const NULL_ALIAS_INT: i32 = 0;
