@@ -636,4 +636,12 @@ pub async fn analyze_pattern(
                 .execute(pool)
                 .await;
     }
+    // pattern_kob
+    if front_text == "กบ" {
+        let _ = sqlx::query("INSERT INTO public.pattern_kob(plates_id, add_date) VALUES ($1, $2)")
+            .bind(plates_id)
+            .bind(add_date)
+            .execute(pool)
+            .await;
+    }
 }
