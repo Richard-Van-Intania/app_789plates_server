@@ -150,7 +150,7 @@ async fn main() {
         )
         // here
         .route(
-            "/insert_plates",
+            "/add_new_plates",
             post(add_new_plates.layer(middleware::from_fn(validate_token))),
         )
         .route(
@@ -158,23 +158,23 @@ async fn main() {
             delete(delete_plates.layer(middleware::from_fn(validate_token))),
         )
         .route(
-            "/insert_price",
+            "/insert_new_price",
             post(insert_new_price.layer(middleware::from_fn(validate_token))),
         )
         .route(
-            "/update_information",
+            "/edit_plates_information",
             put(edit_plates_information.layer(middleware::from_fn(validate_token))),
         )
         .route(
-            "/update_is_selling",
+            "/edit_is_selling",
             put(edit_is_selling.layer(middleware::from_fn(validate_token))),
         )
         .route(
-            "/update_is_pin",
+            "/edit_is_pin",
             put(edit_is_pin.layer(middleware::from_fn(validate_token))),
         )
         .route(
-            "/update_total",
+            "/edit_total",
             put(edit_total.layer(middleware::from_fn(validate_token))),
         )
         .route(
