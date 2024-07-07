@@ -71,3 +71,10 @@ province_id(1)-vehicle_type_id(1)-front_number(8)-front_text(กย)-back_number
 // must query from db
 special_front_id
 // named by activity
+
+
+// temporary_plates unique 60 days then turn off
+
+// update_object have 2 state use 
+// id and "profile/profile_" mean delete
+// id and "profile/profile_asdfasf-464a-asfas.jpg" mean update

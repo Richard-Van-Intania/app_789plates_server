@@ -217,6 +217,21 @@ pub async fn delete_plates(
     }
 }
 
+pub async fn edit_plates_type_id(
+    State(AppState { pool, client: _ }): State<AppState>,
+    Json(payload): Json<Plates>,
+) -> StatusCode {
+    StatusCode::BAD_REQUEST
+}
+
+// temporary_plates
+pub async fn add_new_temporary_plates(
+    State(AppState { pool, client: _ }): State<AppState>,
+    Json(payload): Json<Plates>,
+) -> StatusCode {
+    StatusCode::BAD_REQUEST
+}
+
 pub async fn analyze_new_pattern(
     State(AppState { pool, client: _ }): State<AppState>,
 ) -> StatusCode {
