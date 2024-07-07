@@ -32,7 +32,7 @@ pub struct UniversalId {
 pub async fn add_new_plates(
     State(AppState { pool, client: _ }): State<AppState>,
     Json(payload): Json<Plates>,
-) -> StatusCode {
+) -> Result<Json<UniversalId>, StatusCode> {
     let unique_text = format!(
         "province_id({})-vehicle_type_id({})-front_number({})-front_text({})-back_number({})",
         payload.province_id,
@@ -48,7 +48,7 @@ pub async fn add_new_plates(
             .await;
     match fetch {
         Ok(ok) => match ok {
-            Some(_) => StatusCode::CONFLICT,
+            Some(_) => Err(StatusCode::CONFLICT),
             None => {
                 let add_date = Utc::now();
                 let insert: Result<(i32,), sqlx::Error> = sqlx::query_as("INSERT INTO public.plates(front_text, province_id, plates_type_id, users_id, total, add_date, unique_text, front_number, back_number, special_front_id, vehicle_type_id, information) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12) RETURNING plates_id")
@@ -86,16 +86,16 @@ pub async fn add_new_plates(
                                     &pool,
                                 )
                                 .await;
-                                StatusCode::OK
+                                Ok(Json(UniversalId { id: plates_id }))
                             }
-                            Err(_) => StatusCode::INTERNAL_SERVER_ERROR,
+                            Err(_) => Err(StatusCode::INTERNAL_SERVER_ERROR),
                         }
                     }
-                    Err(_) => StatusCode::INTERNAL_SERVER_ERROR,
+                    Err(_) => Err(StatusCode::INTERNAL_SERVER_ERROR),
                 }
             }
         },
-        Err(_) => StatusCode::INTERNAL_SERVER_ERROR,
+        Err(_) => Err(StatusCode::INTERNAL_SERVER_ERROR),
     }
 }
 
