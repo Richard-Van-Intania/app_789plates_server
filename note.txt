@@ -78,3 +78,7 @@ special_front_id
 // update_object have 2 state use 
 // id and "profile/profile_" mean delete
 // id and "profile/profile_asdfasf-464a-asfas.jpg" mean update
+
+
+// chat day 1, hashtag and income day 2
+// innovative hashtag
