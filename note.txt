@@ -82,3 +82,5 @@ special_front_id
 
 // chat day 1, hashtag and income day 2
 // innovative hashtag
+
+// day 2 hash tag , temp plate , 
