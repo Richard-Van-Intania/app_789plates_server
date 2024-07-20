@@ -43,7 +43,10 @@ pub async fn fetch_special_front(
             .fetch_all(&pool)
             .await;
     match fetch {
-        Ok(ok) => Ok(Json(ok)),
+        Ok(mut ok) => {
+            ok.remove(0);
+            Ok(Json(ok))
+        }
         Err(_) => Err(StatusCode::INTERNAL_SERVER_ERROR),
     }
 }
