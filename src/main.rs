@@ -8,7 +8,7 @@ use app_789plates_server::{
     middleware::{validate_api_key, validate_email, validate_email_unique, validate_token},
     plates::{
         add_new_plates, analyze_new_pattern, delete_plates, edit_is_pin, edit_is_selling,
-        edit_plates_information, edit_total, insert_new_price,
+        edit_plates_information, edit_total, fetch_special_front, insert_new_price,
     },
     profile::{edit_information, edit_name, fetch_profile},
     s3_operations::{generate_presigned_url, update_object},
@@ -147,6 +147,10 @@ async fn main() {
         .route(
             "/update_object",
             put(update_object.layer(middleware::from_fn(validate_token))),
+        )
+        .route(
+            "/fetch_special_front",
+            get(fetch_special_front.layer(middleware::from_fn(validate_token))),
         )
         // here
         .route(

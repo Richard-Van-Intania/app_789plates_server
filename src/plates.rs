@@ -29,6 +29,25 @@ pub struct UniversalId {
     pub id: i32,
 }
 
+#[derive(Debug, Serialize, Deserialize, sqlx::FromRow)]
+pub struct SpecialFront {
+    pub special_front_id: i32,
+    pub front: String,
+}
+
+pub async fn fetch_special_front(
+    State(AppState { pool, client: _ }): State<AppState>,
+) -> Result<Json<Vec<SpecialFront>>, StatusCode> {
+    let fetch: Result<Vec<SpecialFront>, sqlx::Error> =
+        sqlx::query_as("SELECT special_front_id, front FROM public.special_front")
+            .fetch_all(&pool)
+            .await;
+    match fetch {
+        Ok(ok) => Ok(Json(ok)),
+        Err(_) => Err(StatusCode::INTERNAL_SERVER_ERROR),
+    }
+}
+
 pub async fn add_new_plates(
     State(AppState { pool, client: _ }): State<AppState>,
     Json(payload): Json<Plates>,
