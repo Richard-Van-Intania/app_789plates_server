@@ -91,27 +91,34 @@ pub async fn add_new_plates(
                     .await;
                 match insert {
                     Ok((plates_id,)) => {
-                        let insert_price = sqlx::query("INSERT INTO public.price_history(plates_id, price, add_date) VALUES ($1, $2, $3)")
+                        let insert_price_result = if payload.is_temporary {
+                            true
+                        } else {
+                            let insert_price = sqlx::query("INSERT INTO public.price_history(plates_id, price, add_date) VALUES ($1, $2, $3)")
                             .bind(plates_id)
                             .bind(payload.price)
                             .bind(add_date)
                             .execute(&pool)
                             .await;
-                        match insert_price {
-                            Ok(_) => {
-                                analyze_pattern(
-                                    plates_id,
-                                    &payload.front_text,
-                                    payload.front_number,
-                                    payload.back_number,
-                                    add_date,
-                                    payload.vehicle_type_id,
-                                    &pool,
-                                )
-                                .await;
-                                Ok(Json(UniversalId { id: plates_id }))
+                            match insert_price {
+                                Ok(_) => true,
+                                Err(_) => false,
                             }
-                            Err(_) => Err(StatusCode::INTERNAL_SERVER_ERROR),
+                        };
+                        if insert_price_result {
+                            analyze_pattern(
+                                plates_id,
+                                &payload.front_text,
+                                payload.front_number,
+                                payload.back_number,
+                                add_date,
+                                payload.vehicle_type_id,
+                                &pool,
+                            )
+                            .await;
+                            Ok(Json(UniversalId { id: plates_id }))
+                        } else {
+                            Err(StatusCode::INTERNAL_SERVER_ERROR)
                         }
                     }
                     Err(_) => Err(StatusCode::INTERNAL_SERVER_ERROR),
