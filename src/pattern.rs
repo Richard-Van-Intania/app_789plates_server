@@ -644,4 +644,13 @@ pub async fn analyze_pattern(
             .execute(pool)
             .await;
     }
+    // pattern_torthan
+    if front_number == 0 && vehicle_type_id == 1 && front_text.starts_with("ฐ") {
+        let _ =
+            sqlx::query("INSERT INTO public.pattern_torthan(plates_id, add_date) VALUES ($1, $2)")
+                .bind(plates_id)
+                .bind(add_date)
+                .execute(pool)
+                .await;
+    }
 }
