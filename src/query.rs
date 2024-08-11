@@ -1,13 +1,10 @@
-// todo!()
-// query where
-// query group
-// ranking alg
+use axum::{extract::Query, response::IntoResponse};
+use hyper::StatusCode;
+use std::collections::HashMap;
 
-// rating
-// liked_plates
-// saved_plates
-// hashtag
-// static plates image
-// notification
-// adaptive design ipad design
-// filter sort
+fn search(Query(params): Query<HashMap<String, String>>) -> Result<impl IntoResponse, StatusCode> {
+    match params.get("query") {
+        Some(query) => Ok(query.to_string().to_uppercase()),
+        None => Err(StatusCode::BAD_REQUEST),
+    }
+}
