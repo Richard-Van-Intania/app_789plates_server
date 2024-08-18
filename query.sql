@@ -1,0 +1,79 @@
+WITH
+    latest_price AS (
+        SELECT
+            price_history.price_history_id,
+            price_history.plates_id,
+            price_history.price,
+            COUNT(lp.liked_plates_id) + COUNT(sp.saved_plates_id) AS react_count,
+            ROW_NUMBER() OVER (
+                PARTITION BY
+                    price_history.plates_id
+                ORDER BY
+                    price_history.price_history_id DESC
+            ) AS row_num
+        FROM
+            public.price_history
+            LEFT JOIN public.liked_plates AS lp ON lp.plates_id = price_history.plates_id
+            LEFT JOIN public.saved_plates AS sp ON sp.plates_id = price_history.plates_id
+        GROUP BY
+            price_history.price_history_id,
+            price_history.plates_id,
+            price_history.price
+    )
+SELECT
+    plates.plates_id,
+    plates.front_text,
+    plates.special_front_id,
+    special_front.front,
+    plates.plates_type_id,
+    plates_type.type,
+    plates.plates_uri,
+    plates.total,
+    plates.front_number,
+    plates.back_number,
+    plates.vehicle_type_id,
+    vehicle_type.type,
+    plates.users_id,
+    users.name,
+    users.profile_uri,
+    plates.province_id,
+    province.name_th,
+    province.name_en,
+    plates.information,
+    saved_plates.saved_plates_id,
+    liked_plates.liked_plates_id,
+    saved_store.saved_store_id,
+    liked_store.liked_store_id,
+    latest_price.price,
+    latest_price.row_num,
+    latest_price.react_count
+FROM
+    latest_price
+    INNER JOIN public.plates ON plates.plates_id = latest_price.plates_id
+    INNER JOIN public.plates_type ON plates.plates_type_id = plates_type.plates_type_id
+    INNER JOIN public.vehicle_type ON vehicle_type.vehicle_type_id = plates.vehicle_type_id
+    INNER JOIN public.special_front ON special_front.special_front_id = plates.special_front_id
+    INNER JOIN public.province ON province.province_id = plates.province_id
+    INNER JOIN public.users ON users.users_id = plates.users_id
+    LEFT JOIN public.liked_plates ON liked_plates.plates_id = plates.plates_id
+    AND liked_plates.users_id = 10
+    LEFT JOIN public.saved_plates ON saved_plates.plates_id = plates.plates_id
+    AND saved_plates.users_id = 10
+    LEFT JOIN public.liked_store ON liked_store.store_id = plates.users_id
+    AND liked_store.users_id = 10
+    LEFT JOIN public.saved_store ON saved_store.store_id = plates.users_id
+    AND saved_store.users_id = 10
+WHERE
+    latest_price.row_num = 1
+    AND is_selling IS TRUE
+    AND is_temporary IS NOT TRUE
+    AND latest_price.price <= 1000000
+    AND plates.province_id IN (1, 2)
+    AND plates.plates_type_id IN (1, 2, 5, 6)
+ORDER BY
+    latest_price.react_count DESC
+    -- latest_price.price DESC
+LIMIT
+    100
+OFFSET
+    0
