@@ -6,12 +6,12 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-tokio = { version = "1.39.0", features = ["full"] }
+tokio = { version = "1.39.3", features = ["full"] }
 tower = { version = "0.4.13", features = ["full"] }
 tower-http = { version = "0.5.2", features = ["full"] }
 axum = { version = "0.7.5", features = ["http2"] }
 axum-extra = { version = "0.9.3", features = ["typed-header"] }
-serde = { version = "1.0.206", features = ["derive"] }
+serde = { version = "1.0.208", features = ["derive"] }
 sqlx = { version = "0.8.0", features = [
     "runtime-tokio",
     "tls-rustls",
@@ -20,7 +20,7 @@ sqlx = { version = "0.8.0", features = [
     "postgres",
 ] }
 aws-config = { version = "1.5.5", features = ["behavior-version-latest"] }
-aws-sdk-s3 = "1.43.0"
+aws-sdk-s3 = "1.45.0"
 chrono = "0.4.38"
 uuid = { version = "1.10.0", features = ["v4"] }
 jsonwebtoken = "9.3.0"
