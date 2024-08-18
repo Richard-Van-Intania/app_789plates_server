@@ -10,6 +10,5 @@ pub mod profile;
 pub mod query;
 pub mod rating;
 pub mod s3_operations;
-pub mod search;
 pub mod shutdown;
 pub mod transfer;

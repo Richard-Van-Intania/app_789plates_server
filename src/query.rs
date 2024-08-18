@@ -1,10 +1,6 @@
-use axum::{extract::Query, response::IntoResponse};
-use hyper::StatusCode;
-use std::collections::HashMap;
+use serde::{Deserialize, Serialize};
 
-fn search(Query(params): Query<HashMap<String, String>>) -> Result<impl IntoResponse, StatusCode> {
-    match params.get("query") {
-        Some(query) => Ok(query.to_string().to_uppercase()),
-        None => Err(StatusCode::BAD_REQUEST),
-    }
-}
+#[derive(Debug, Serialize, Deserialize)]
+pub struct PlatesQuery {}
+
+// search query everythings are here

@@ -274,3 +274,5 @@ pub async fn analyze_new_pattern(
         Err(_) => StatusCode::INTERNAL_SERVER_ERROR,
     }
 }
+
+// delete img, edit img and much more
