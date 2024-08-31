@@ -45,11 +45,11 @@ pub async fn query_plates(
     State(AppState { pool, client: _ }): State<AppState>,
     Json(payload): Json<PlatesFilter>,
 ) -> Result<Json<Vec<PlatesData>>, StatusCode> {
-    let order_by: String = match payload.sort_by.as_str() {
-        "priceLowToHigh" => "latest_price.price ASC".to_string(),
-        "priceHighToLow" => "latest_price.price DESC".to_string(),
-        "reacts" => "latest_price.reacts_count DESC".to_string(),
-        _ => "latest_price.price ASC".to_string(),
+    let order_by = match payload.sort_by.as_str() {
+        "priceLowToHigh" => "latest_price.price ASC",
+        "priceHighToLow" => "latest_price.price DESC",
+        "reacts" => "latest_price.reacts_count DESC",
+        _ => "latest_price.price ASC",
     };
     let sql = format!(
         "WITH latest_price AS (

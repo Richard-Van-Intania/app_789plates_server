@@ -4,7 +4,6 @@
     "price_under": 100000,
     "sort_by": "reacts",
     "plates_type_id_list": [
-      
         6
     ],
     "province_id_list": [
