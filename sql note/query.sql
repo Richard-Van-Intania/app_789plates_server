@@ -40,6 +40,7 @@ SELECT plates.plates_id,
     latest_price.rownumber
 FROM latest_price
     INNER JOIN public.plates ON plates.plates_id = latest_price.plates_id
+    INNER JOIN public.pattern_torthan ON pattern_torthan.plates_id = latest_price.plates_id
     INNER JOIN public.users ON users.users_id = plates.users_id
     LEFT JOIN public.liked_plates ON liked_plates.plates_id = plates.plates_id
     AND liked_plates.users_id = 10
@@ -52,8 +53,8 @@ FROM latest_price
 WHERE latest_price.rownumber = 1
     AND is_selling IS TRUE
     AND is_temporary IS NOT TRUE
-    AND latest_price.price <= 1000000
-    AND plates.province_id IN (1, 2)
+    AND latest_price.price <= 10000000
     AND plates.plates_type_id IN (1, 2, 5, 6)
+    AND plates.province_id IN (1, 2)
 ORDER BY latest_price.reacts_count DESC
 LIMIT 500 OFFSET 0
