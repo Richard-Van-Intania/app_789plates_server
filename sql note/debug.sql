@@ -59,5 +59,5 @@ WHERE latest_price.rownumber = 1
     AND plates.province_id IN (
         SELECT unnest ($4::integer [])
     )
-ORDER BY latest_price.reacts_count DESC
+ORDER BY { }
 LIMIT $5 OFFSET $6
