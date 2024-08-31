@@ -15,6 +15,8 @@ pub struct PlatesFilter {
     pub sort_by: String,
     pub plates_type_id_list: Vec<i32>,
     pub province_id_list: Vec<i32>,
+    pub limit: i32,
+    pub offset: i32,
 }
 
 #[derive(Debug, Serialize, Deserialize, sqlx::FromRow)]
@@ -35,8 +37,12 @@ pub struct PlatesData {
     pub profile_uri: Option<String>,
     pub liked_plates_id: Option<i32>,
     pub saved_plates_id: Option<i32>,
+    pub liked_store_id: Option<i32>,
+    pub saved_store_id: Option<i32>,
     pub liked_plates_id_count: i32,
     pub saved_plates_id_count: i32,
+    pub reacts_count: i32,
+    pub rownumber: i32,
 }
 
 pub async fn query_plates(
