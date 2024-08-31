@@ -1,27 +1,20 @@
-WITH
-    latest_price AS (
-        SELECT
-            price_history.price_history_id,
-            price_history.plates_id,
-            price_history.price,
-            COUNT(lp.liked_plates_id) + COUNT(sp.saved_plates_id) AS react_count,
-            ROW_NUMBER() OVER (
-                PARTITION BY
-                    price_history.plates_id
-                ORDER BY
-                    price_history.price_history_id DESC
-            ) AS row_num
-        FROM
-            public.price_history
-            LEFT JOIN public.liked_plates AS lp ON lp.plates_id = price_history.plates_id
-            LEFT JOIN public.saved_plates AS sp ON sp.plates_id = price_history.plates_id
-        GROUP BY
-            price_history.price_history_id,
-            price_history.plates_id,
-            price_history.price
-    )
-SELECT
-    plates.plates_id,
+WITH latest_price AS (
+    SELECT price_history.price_history_id,
+        price_history.plates_id,
+        price_history.price,
+        COUNT(lp.liked_plates_id) + COUNT(sp.saved_plates_id) AS react_count,
+        ROW_NUMBER() OVER (
+            PARTITION BY price_history.plates_id
+            ORDER BY price_history.price_history_id DESC
+        ) AS rownumber
+    FROM public.price_history
+        LEFT JOIN public.liked_plates AS lp ON lp.plates_id = price_history.plates_id
+        LEFT JOIN public.saved_plates AS sp ON sp.plates_id = price_history.plates_id
+    GROUP BY price_history.price_history_id,
+        price_history.plates_id,
+        price_history.price
+)
+SELECT plates.plates_id,
     plates.front_text,
     plates.special_front_id,
     special_front.front,
@@ -45,10 +38,9 @@ SELECT
     saved_store.saved_store_id,
     liked_store.liked_store_id,
     latest_price.price,
-    latest_price.row_num,
+    latest_price.rownumber,
     latest_price.react_count
-FROM
-    latest_price
+FROM latest_price
     INNER JOIN public.plates ON plates.plates_id = latest_price.plates_id
     INNER JOIN public.plates_type ON plates.plates_type_id = plates_type.plates_type_id
     INNER JOIN public.vehicle_type ON vehicle_type.vehicle_type_id = plates.vehicle_type_id
@@ -63,17 +55,11 @@ FROM
     AND liked_store.users_id = 10
     LEFT JOIN public.saved_store ON saved_store.store_id = plates.users_id
     AND saved_store.users_id = 10
-WHERE
-    latest_price.row_num = 1
+WHERE latest_price.rownumber = 1
     AND is_selling IS TRUE
     AND is_temporary IS NOT TRUE
     AND latest_price.price <= 1000000
     AND plates.province_id IN (1, 2)
     AND plates.plates_type_id IN (1, 2, 5, 6)
-ORDER BY
-    latest_price.react_count DESC
-    -- latest_price.price DESC
-LIMIT
-    100
-OFFSET
-    0
+ORDER BY latest_price.react_count DESC -- latest_price.price DESC
+LIMIT 100 OFFSET 0

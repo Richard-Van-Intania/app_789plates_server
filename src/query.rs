@@ -1,16 +1,24 @@
-use std::collections::HashMap;
-
-use axum::{
-    extract::{Query, State},
-    Json,
-};
+use axum::{extract::State, Json};
 use hyper::StatusCode;
 use serde::{Deserialize, Serialize};
 
 use crate::app_state::AppState;
 
+pub async fn search_plates() {}
+pub async fn query_users() {}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct PlatesFilter {
+    pub users_id: i32,
+    pub search_text: Option<String>,
+    pub price_under: i32,
+    pub sort_by: String,
+    pub plates_type_id_list: Vec<i32>,
+    pub province_id_list: Vec<i32>,
+}
+
 #[derive(Debug, Serialize, Deserialize, sqlx::FromRow)]
-pub struct PlatesQuery {
+pub struct PlatesData {
     pub plates_id: i32,
     pub front_text: String,
     pub plates_type_id: i32,
@@ -27,43 +35,27 @@ pub struct PlatesQuery {
     pub profile_uri: Option<String>,
     pub liked_plates_id: Option<i32>,
     pub saved_plates_id: Option<i32>,
-    pub reacts: i32,
+    pub liked_plates_id_count: i32,
+    pub saved_plates_id_count: i32,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
-pub struct PlatesData {}
-
-pub async fn query_plates_pattern(
-    Query(params): Query<HashMap<String, String>>,
+pub async fn query_plates(
     State(AppState { pool, client: _ }): State<AppState>,
-) -> Result<Json<Vec<PlatesQuery>>, StatusCode> {
-    let price_under = match params.get("price_under") {
-        Some(some) => match some.parse::<i32>() {
-            Ok(ok) => ok,
-            Err(_) => return Err(StatusCode::BAD_REQUEST),
-        },
-        None => return Err(StatusCode::BAD_REQUEST),
+    Json(payload): Json<PlatesFilter>,
+) -> Result<Json<Vec<PlatesData>>, StatusCode> {
+    let order_by: String = match payload.sort_by.as_str() {
+        "priceLowToHigh" => "latest_price.price ASC".to_string(),
+        "priceHighToLow" => "latest_price.price DESC".to_string(),
+        "reacts" => "latest_price.reacts_count DESC".to_string(),
+        _ => "latest_price.price ASC".to_string(),
     };
-    let sort_by = match params.get("sort_by") {
-        Some(some) => some.to_string(),
-        None => return Err(StatusCode::BAD_REQUEST),
-    };
-    let plates_type_list = match params.get("plates_type_list") {
-        Some(some) => some.to_string(),
-        None => return Err(StatusCode::BAD_REQUEST),
-    };
-    let province_list = match params.get("province_list") {
-        Some(some) => some.to_string(),
-        None => return Err(StatusCode::BAD_REQUEST),
-    };
-    let fetch: Result<Vec<PlatesQuery>, sqlx::Error> = sqlx::query_as("").fetch_all(&pool).await;
 
-    todo!()
-}
+    let sql = format!("");
 
-pub async fn search_plates(
-    Query(params): Query<HashMap<String, String>>,
-    State(AppState { pool, client: _ }): State<AppState>,
-) -> Result<Json<Vec<PlatesQuery>>, StatusCode> {
+    let fetch: Result<Vec<PlatesData>, sqlx::Error> = sqlx::query_as(&sql)
+        .bind(payload.plates_type_id_list)
+        .bind(payload.province_id_list)
+        .fetch_all(&pool)
+        .await;
     todo!()
 }
