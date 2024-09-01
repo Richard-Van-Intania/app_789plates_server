@@ -11,7 +11,7 @@ use app_789plates_server::{
         edit_plates_information, edit_total, fetch_special_front, insert_new_price,
     },
     profile::{edit_information, edit_name, fetch_profile},
-    query::query_plates,
+    query::{query_pattern, query_special_front},
     s3_operations::{generate_presigned_url, update_object},
     shutdown::shutdown_signal,
 };
@@ -186,9 +186,14 @@ async fn main() {
             "/analyze_new_pattern",
             get(analyze_new_pattern.layer(middleware::from_fn(validate_api_key))),
         )
+        // query
         .route(
-            "/query_plates",
-            post(query_plates.layer(middleware::from_fn(validate_api_key))),
+            "/query_special_front",
+            post(query_special_front.layer(middleware::from_fn(validate_api_key))),
+        )
+        .route(
+            "/query_pattern",
+            post(query_pattern.layer(middleware::from_fn(validate_api_key))),
         )
         .layer(TraceLayer::new_for_http())
         .layer(TimeoutLayer::new(time::Duration::from_secs(15)))
