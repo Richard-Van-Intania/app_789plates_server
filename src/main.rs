@@ -11,7 +11,9 @@ use app_789plates_server::{
         edit_plates_information, edit_total, fetch_special_front, insert_new_price,
     },
     profile::{edit_information, edit_name, fetch_profile},
-    query::{query_pattern, query_special_front},
+    query::{
+        query_pattern, query_plates_type_province, query_special_front, query_vehicle_type_province,
+    },
     s3_operations::{generate_presigned_url, update_object},
     shutdown::shutdown_signal,
 };
@@ -194,6 +196,14 @@ async fn main() {
         .route(
             "/query_pattern",
             post(query_pattern.layer(middleware::from_fn(validate_api_key))),
+        )
+        .route(
+            "/query_plates_type_province",
+            post(query_plates_type_province.layer(middleware::from_fn(validate_api_key))),
+        )
+        .route(
+            "/query_vehicle_type_province",
+            post(query_vehicle_type_province.layer(middleware::from_fn(validate_api_key))),
         )
         .layer(TraceLayer::new_for_http())
         .layer(TimeoutLayer::new(time::Duration::from_secs(15)))

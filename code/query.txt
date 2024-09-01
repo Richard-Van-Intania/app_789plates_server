@@ -109,4 +109,4 @@ LIMIT $5 OFFSET $6",
 
 
 pub async fn search_plates() {}
-pub async fn query_users() {}
+pub async fn query_suggestion() {}
