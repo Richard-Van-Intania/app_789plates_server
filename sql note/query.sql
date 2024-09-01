@@ -43,20 +43,23 @@ FROM latest_price
     INNER JOIN public.plates ON plates.plates_id = latest_price.plates_id
     INNER JOIN public.users ON users.users_id = plates.users_id
     LEFT JOIN public.liked_plates ON liked_plates.plates_id = plates.plates_id
-    AND liked_plates.users_id = 10
+    AND liked_plates.users_id = $1
     LEFT JOIN public.saved_plates ON saved_plates.plates_id = plates.plates_id
-    AND saved_plates.users_id = 10
+    AND saved_plates.users_id = $1
     LEFT JOIN public.liked_store ON liked_store.store_id = plates.users_id
-    AND liked_store.users_id = 10
+    AND liked_store.users_id = $1
     LEFT JOIN public.saved_store ON saved_store.store_id = plates.users_id
-    AND saved_store.users_id = 10
+    AND saved_store.users_id = $1
 WHERE latest_price.rownumber = 1
     AND is_selling IS TRUE
     AND is_temporary IS NOT TRUE
-    AND latest_price.price <= 10000000
-    AND plates.plates_type_id IN (1, 2, 3, 4, 5, 6, 7, 8, 9)
-    AND plates.province_id IN (1)
-    AND CAST(plates.back_number AS text) LIKE '%9%' --
-    --     AND plates.province_id { province }
-    -- ORDER BY { sort_by }
-    -- LIMIT $5 OFFSET $6
+    AND latest_price.price <= $2
+    AND plates.plates_type_id IN (
+        SELECT unnest ($3::integer [])
+    )
+    AND plates.province_id IN (
+        SELECT unnest ($4::integer [])
+    )
+    AND plates.back_number = $7
+ORDER BY { sort_by }
+LIMIT $5 OFFSET $6

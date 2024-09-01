@@ -11,6 +11,10 @@ pub struct PlatesFilter {
     pub province_id: i32,
     pub vehicle_type_id: i32,
     pub search_text: String,
+    pub search_text_pattern_id: i32,
+    pub search_text_front_number: i32,
+    pub search_text_front_text: String,
+    pub search_text_back_number: i32,
     pub back_number: i32,
     pub price_under: i32,
     pub sort_by: String,
@@ -506,3 +510,12 @@ LIMIT $5 OFFSET $6"
         Err(_) => Err(StatusCode::INTERNAL_SERVER_ERROR),
     }
 }
+
+pub async fn search_plates(
+    State(AppState { pool, client: _ }): State<AppState>,
+    Json(payload): Json<PlatesFilter>,
+) -> Result<Json<Vec<PlatesData>>, StatusCode> {
+    todo!()
+}
+
+pub async fn query_users() {}
