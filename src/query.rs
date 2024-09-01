@@ -519,3 +519,6 @@ pub async fn search_plates(
 }
 
 pub async fn query_users() {}
+
+// search store
+// equal all
