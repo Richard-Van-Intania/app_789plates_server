@@ -241,13 +241,6 @@ pub async fn delete_plates(
     }
 }
 
-pub async fn edit_plates_type_id(
-    State(AppState { pool, client: _ }): State<AppState>,
-    Json(payload): Json<Plates>,
-) -> StatusCode {
-    StatusCode::BAD_REQUEST
-}
-
 pub async fn analyze_new_pattern(
     State(AppState { pool, client: _ }): State<AppState>,
 ) -> StatusCode {
@@ -273,6 +266,13 @@ pub async fn analyze_new_pattern(
         }
         Err(_) => StatusCode::INTERNAL_SERVER_ERROR,
     }
+}
+
+pub async fn edit_plates_type_id(
+    State(AppState { pool, client: _ }): State<AppState>,
+    Json(payload): Json<Plates>,
+) -> StatusCode {
+    StatusCode::BAD_REQUEST
 }
 
 // delete img, edit img and much more

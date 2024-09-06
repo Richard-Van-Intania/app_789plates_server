@@ -86,3 +86,16 @@ special_front_id
 // day 2 hash tag , temp plate , 
 
 // search user
+
+
+enum SearchTextPattern {
+  numberTextNumber(id: 0),
+  numberText(id: 1),
+  textNumber(id: 2),
+  text(id: 3),
+  number(id: 4),
+  notAll(id: 5);
+
+  const SearchTextPattern({required this.id});
+  final int id;
+}

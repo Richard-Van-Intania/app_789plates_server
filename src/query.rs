@@ -60,6 +60,14 @@ fn order_by(sort_by: String) -> &'static str {
     }
 }
 
+fn province_text(province_id: i32) -> &'static str {
+    match province_id {
+        0 => "!= 1",
+        1 => "= 1",
+        _ => "!= 0",
+    }
+}
+
 pub async fn query_special_front(
     State(AppState { pool, client: _ }): State<AppState>,
     Json(payload): Json<PlatesFilter>,
@@ -240,11 +248,7 @@ pub async fn query_plates_type_province(
     Json(payload): Json<PlatesFilter>,
 ) -> Result<Json<Vec<PlatesData>>, StatusCode> {
     let sort_by = order_by(payload.sort_by);
-    let province = match payload.province_id {
-        0 => "!= 1",
-        1 => "= 1",
-        _ => "!= 0",
-    };
+    let province = province_text(payload.province_id);
     let sql = format!(
         "WITH latest_price AS (
     SELECT price_history.price_history_id,
@@ -334,11 +338,7 @@ pub async fn query_vehicle_type_province(
     Json(payload): Json<PlatesFilter>,
 ) -> Result<Json<Vec<PlatesData>>, StatusCode> {
     let sort_by = order_by(payload.sort_by);
-    let province = match payload.province_id {
-        0 => "!= 1",
-        1 => "= 1",
-        _ => "!= 0",
-    };
+    let province = province_text(payload.province_id);
     let sql = format!(
         "WITH latest_price AS (
     SELECT price_history.price_history_id,
@@ -428,6 +428,7 @@ pub async fn query_suggestion_back_number(
     Json(payload): Json<PlatesFilter>,
 ) -> Result<Json<Vec<PlatesData>>, StatusCode> {
     let sort_by = order_by(payload.sort_by);
+    let back_number = payload.back_number;
     let sql = format!(
         "WITH latest_price AS (
     SELECT price_history.price_history_id,
@@ -498,15 +499,104 @@ LIMIT $5 OFFSET $6"
     let fetch: Result<Vec<PlatesData>, sqlx::Error> = sqlx::query_as(&sql)
         .bind(payload.users_id)
         .bind(payload.price_under)
-        .bind(payload.plates_type_id_list)
-        .bind(payload.province_id_list)
+        .bind(&payload.plates_type_id_list)
+        .bind(&payload.province_id_list)
         .bind(payload.limit)
         .bind(payload.offset)
-        .bind(payload.back_number)
+        .bind(back_number)
+        .fetch_all(&pool)
+        .await;
+    let mut plates_list = match fetch {
+        Ok(ok) => {
+            if ok.len() < 30 {
+                ok
+            } else {
+                return Ok(Json(ok));
+            }
+        }
+        Err(_) => return Err(StatusCode::INTERNAL_SERVER_ERROR),
+    };
+    let sql = format!(
+        "WITH latest_price AS (
+    SELECT price_history.price_history_id,
+        price_history.plates_id,
+        price_history.price,
+        COUNT(lp.liked_plates_id) AS liked_plates_id_count,
+        COUNT(sp.saved_plates_id) AS saved_plates_id_count,
+        COUNT(lp.liked_plates_id) + COUNT(sp.saved_plates_id) AS reacts_count,
+        ROW_NUMBER() OVER (
+            PARTITION BY price_history.plates_id
+            ORDER BY price_history.price_history_id DESC
+        ) AS rownumber
+    FROM public.price_history
+        LEFT JOIN public.liked_plates AS lp ON lp.plates_id = price_history.plates_id
+        LEFT JOIN public.saved_plates AS sp ON sp.plates_id = price_history.plates_id
+    GROUP BY price_history.price_history_id,
+        price_history.plates_id,
+        price_history.price
+)
+SELECT plates.plates_id,
+    plates.front_text,
+    plates.plates_type_id,
+    plates.plates_uri,
+    plates.total,
+    plates.front_number,
+    plates.back_number,
+    plates.vehicle_type_id,
+    plates.users_id,
+    plates.special_front_id,
+    plates.province_id,
+    plates.information,
+    latest_price.price,
+    users.name,
+    users.profile_uri,
+    liked_plates.liked_plates_id,
+    saved_plates.saved_plates_id,
+    liked_store.liked_store_id,
+    saved_store.saved_store_id,
+    latest_price.liked_plates_id_count,
+    latest_price.saved_plates_id_count,
+    latest_price.reacts_count,
+    latest_price.rownumber
+FROM latest_price
+    INNER JOIN public.plates ON plates.plates_id = latest_price.plates_id
+    INNER JOIN public.users ON users.users_id = plates.users_id
+    LEFT JOIN public.liked_plates ON liked_plates.plates_id = plates.plates_id
+    AND liked_plates.users_id = $1
+    LEFT JOIN public.saved_plates ON saved_plates.plates_id = plates.plates_id
+    AND saved_plates.users_id = $1
+    LEFT JOIN public.liked_store ON liked_store.store_id = plates.users_id
+    AND liked_store.users_id = $1
+    LEFT JOIN public.saved_store ON saved_store.store_id = plates.users_id
+    AND saved_store.users_id = $1
+WHERE latest_price.rownumber = 1
+    AND is_selling IS TRUE
+    AND is_temporary IS NOT TRUE
+    AND latest_price.price <= $2
+    AND plates.plates_type_id IN (
+        SELECT unnest ($3::integer [])
+    )
+    AND plates.province_id IN (
+        SELECT unnest ($4::integer [])
+    )
+    AND CAST(plates.back_number AS text) LIKE '%{back_number}%'
+ORDER BY {sort_by}
+LIMIT $5 OFFSET $6"
+    );
+    let fetch: Result<Vec<PlatesData>, sqlx::Error> = sqlx::query_as(&sql)
+        .bind(payload.users_id)
+        .bind(payload.price_under)
+        .bind(&payload.plates_type_id_list)
+        .bind(&payload.province_id_list)
+        .bind(payload.limit)
+        .bind(payload.offset)
         .fetch_all(&pool)
         .await;
     match fetch {
-        Ok(ok) => Ok(Json(ok)),
+        Ok(mut ok) => {
+            plates_list.append(&mut ok);
+            Ok(Json(plates_list))
+        }
         Err(_) => Err(StatusCode::INTERNAL_SERVER_ERROR),
     }
 }
@@ -521,4 +611,3 @@ pub async fn search_plates(
 pub async fn query_users() {}
 
 // search store
-// equal all
