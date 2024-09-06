@@ -601,13 +601,39 @@ LIMIT $5 OFFSET $6"
     }
 }
 
-pub async fn search_plates(
+pub async fn search_number_text_number(
     State(AppState { pool, client: _ }): State<AppState>,
     Json(payload): Json<PlatesFilter>,
 ) -> Result<Json<Vec<PlatesData>>, StatusCode> {
     todo!()
 }
 
-pub async fn query_users() {}
+pub async fn search_number_text(
+    State(AppState { pool, client: _ }): State<AppState>,
+    Json(payload): Json<PlatesFilter>,
+) -> Result<Json<Vec<PlatesData>>, StatusCode> {
+    todo!()
+}
+pub async fn search_text_number(
+    State(AppState { pool, client: _ }): State<AppState>,
+    Json(payload): Json<PlatesFilter>,
+) -> Result<Json<Vec<PlatesData>>, StatusCode> {
+    todo!()
+}
 
-// search store
+pub async fn search_text(
+    State(AppState { pool, client: _ }): State<AppState>,
+    Json(payload): Json<PlatesFilter>,
+) -> Result<Json<Vec<PlatesData>>, StatusCode> {
+    todo!()
+}
+
+pub async fn search_number(
+    State(AppState { pool, client: _ }): State<AppState>,
+    Json(payload): Json<PlatesFilter>,
+) -> Result<Json<Vec<PlatesData>>, StatusCode> {
+    todo!()
+    // eq then like
+}
+
+pub async fn search_users() {}
