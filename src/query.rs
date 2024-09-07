@@ -628,12 +628,12 @@ pub async fn search_text(
     todo!()
 }
 
+pub async fn search_users() {}
+
+// eq then like
 pub async fn search_number(
     State(AppState { pool, client: _ }): State<AppState>,
     Json(payload): Json<PlatesFilter>,
 ) -> Result<Json<Vec<PlatesData>>, StatusCode> {
     todo!()
-    // eq then like
 }
-
-pub async fn search_users() {}

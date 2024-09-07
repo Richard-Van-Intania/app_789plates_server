@@ -268,11 +268,5 @@ pub async fn analyze_new_pattern(
     }
 }
 
-pub async fn edit_plates_type_id(
-    State(AppState { pool, client: _ }): State<AppState>,
-    Json(payload): Json<Plates>,
-) -> StatusCode {
-    StatusCode::BAD_REQUEST
-}
-
-// delete img, edit img and much more
+// delete img
+// update img
