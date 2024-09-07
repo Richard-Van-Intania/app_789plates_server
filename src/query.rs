@@ -1327,7 +1327,7 @@ LIMIT $5 OFFSET $6"
     }
 }
 
-// here for search user list by name or email
+// here for search user list
 #[derive(Debug, Serialize, Deserialize, sqlx::FromRow)]
 pub struct Users {
     pub users_id: i32,
@@ -1367,4 +1367,5 @@ pub async fn query_users(
     State(AppState { pool, client: _ }): State<AppState>,
     Json(payload): Json<UniversalId>,
 ) {
+    todo!();
 }
