@@ -1,4 +1,4 @@
-use crate::app_state::AppState;
+use crate::{app_state::AppState, plates::UniversalId};
 use axum::{
     extract::{Query, State},
     Json,
@@ -1327,8 +1327,7 @@ LIMIT $5 OFFSET $6"
     }
 }
 
-// here
-
+// here for search user list by name or email
 #[derive(Debug, Serialize, Deserialize, sqlx::FromRow)]
 pub struct Users {
     pub users_id: i32,
@@ -1361,4 +1360,11 @@ pub async fn search_users(
 
     //
     Err(StatusCode::BAD_REQUEST)
+}
+
+// here for get detail user return user id and their all of plates without filter
+pub async fn query_users(
+    State(AppState { pool, client: _ }): State<AppState>,
+    Json(payload): Json<UniversalId>,
+) {
 }
