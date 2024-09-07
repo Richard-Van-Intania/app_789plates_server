@@ -100,6 +100,9 @@ enum SearchTextPattern {
 }
 
 
+
+// analyzed from front extract wisely everything then send to server
+// precise first
 enum SearchTextPattern {
   numberTextNumber(id: 0),
   numberText(id: 1),
@@ -113,7 +116,7 @@ enum SearchTextPattern {
 }
 
 number(id: 4), --> eq then like
-text(id: 3),  ---> 3 or 2 both eq
+text(id: 3),  ---> 1 2 3 more การงาน like  LIKE 'A%';
 textNumber(id: 2), -- > eq and eq + eq and like + like and eq
 numberText(id: 1), --> eq
 numberTextNumber(id: 0), -- >eq all + eq eq like

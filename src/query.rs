@@ -1,7 +1,11 @@
 use crate::app_state::AppState;
-use axum::{extract::State, Json};
+use axum::{
+    extract::{Query, State},
+    Json,
+};
 use hyper::StatusCode;
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct PlatesFilter {
@@ -143,8 +147,8 @@ LIMIT $5 OFFSET $6"
     let fetch: Result<Vec<PlatesData>, sqlx::Error> = sqlx::query_as(&sql)
         .bind(payload.users_id)
         .bind(payload.price_under)
-        .bind(payload.plates_type_id_list)
-        .bind(payload.province_id_list)
+        .bind(&payload.plates_type_id_list)
+        .bind(&payload.province_id_list)
         .bind(payload.limit)
         .bind(payload.offset)
         .fetch_all(&pool)
@@ -231,8 +235,8 @@ LIMIT $5 OFFSET $6"
     let fetch: Result<Vec<PlatesData>, sqlx::Error> = sqlx::query_as(&sql)
         .bind(payload.users_id)
         .bind(payload.price_under)
-        .bind(payload.plates_type_id_list)
-        .bind(payload.province_id_list)
+        .bind(&payload.plates_type_id_list)
+        .bind(&payload.province_id_list)
         .bind(payload.limit)
         .bind(payload.offset)
         .fetch_all(&pool)
@@ -320,8 +324,8 @@ LIMIT $5 OFFSET $6"
     let fetch: Result<Vec<PlatesData>, sqlx::Error> = sqlx::query_as(&sql)
         .bind(payload.users_id)
         .bind(payload.price_under)
-        .bind(payload.plates_type_id_list)
-        .bind(payload.province_id_list)
+        .bind(&payload.plates_type_id_list)
+        .bind(&payload.province_id_list)
         .bind(payload.limit)
         .bind(payload.offset)
         .bind(payload.plates_type_id)
@@ -410,8 +414,8 @@ LIMIT $5 OFFSET $6"
     let fetch: Result<Vec<PlatesData>, sqlx::Error> = sqlx::query_as(&sql)
         .bind(payload.users_id)
         .bind(payload.price_under)
-        .bind(payload.plates_type_id_list)
-        .bind(payload.province_id_list)
+        .bind(&payload.plates_type_id_list)
+        .bind(&payload.province_id_list)
         .bind(payload.limit)
         .bind(payload.offset)
         .bind(payload.vehicle_type_id)
@@ -508,7 +512,7 @@ LIMIT $5 OFFSET $6"
         .await;
     let mut plates_list = match fetch {
         Ok(ok) => {
-            if ok.len() < 30 {
+            if ok.len() < 20 {
                 ok
             } else {
                 return Ok(Json(ok));
@@ -605,35 +609,756 @@ pub async fn search_number_text_number(
     State(AppState { pool, client: _ }): State<AppState>,
     Json(payload): Json<PlatesFilter>,
 ) -> Result<Json<Vec<PlatesData>>, StatusCode> {
-    todo!()
+    let sort_by = order_by(payload.sort_by);
+    let search_text_front_text = payload.search_text_front_text;
+    let search_text_back_number = payload.search_text_back_number;
+    let sql = format!(
+        "WITH latest_price AS (
+    SELECT price_history.price_history_id,
+        price_history.plates_id,
+        price_history.price,
+        COUNT(lp.liked_plates_id) AS liked_plates_id_count,
+        COUNT(sp.saved_plates_id) AS saved_plates_id_count,
+        COUNT(lp.liked_plates_id) + COUNT(sp.saved_plates_id) AS reacts_count,
+        ROW_NUMBER() OVER (
+            PARTITION BY price_history.plates_id
+            ORDER BY price_history.price_history_id DESC
+        ) AS rownumber
+    FROM public.price_history
+        LEFT JOIN public.liked_plates AS lp ON lp.plates_id = price_history.plates_id
+        LEFT JOIN public.saved_plates AS sp ON sp.plates_id = price_history.plates_id
+    GROUP BY price_history.price_history_id,
+        price_history.plates_id,
+        price_history.price
+)
+SELECT plates.plates_id,
+    plates.front_text,
+    plates.plates_type_id,
+    plates.plates_uri,
+    plates.total,
+    plates.front_number,
+    plates.back_number,
+    plates.vehicle_type_id,
+    plates.users_id,
+    plates.special_front_id,
+    plates.province_id,
+    plates.information,
+    latest_price.price,
+    users.name,
+    users.profile_uri,
+    liked_plates.liked_plates_id,
+    saved_plates.saved_plates_id,
+    liked_store.liked_store_id,
+    saved_store.saved_store_id,
+    latest_price.liked_plates_id_count,
+    latest_price.saved_plates_id_count,
+    latest_price.reacts_count,
+    latest_price.rownumber
+FROM latest_price
+    INNER JOIN public.plates ON plates.plates_id = latest_price.plates_id
+    INNER JOIN public.users ON users.users_id = plates.users_id
+    LEFT JOIN public.liked_plates ON liked_plates.plates_id = plates.plates_id
+    AND liked_plates.users_id = $1
+    LEFT JOIN public.saved_plates ON saved_plates.plates_id = plates.plates_id
+    AND saved_plates.users_id = $1
+    LEFT JOIN public.liked_store ON liked_store.store_id = plates.users_id
+    AND liked_store.users_id = $1
+    LEFT JOIN public.saved_store ON saved_store.store_id = plates.users_id
+    AND saved_store.users_id = $1
+WHERE latest_price.rownumber = 1
+    AND is_selling IS TRUE
+    AND is_temporary IS NOT TRUE
+    AND latest_price.price <= $2
+    AND plates.plates_type_id IN (
+        SELECT unnest ($3::integer [])
+    )
+    AND plates.province_id IN (
+        SELECT unnest ($4::integer [])
+    )
+    AND plates.front_number = $7
+    AND plates.back_number = $8
+    AND plates.front_text LIKE '{search_text_front_text}%'
+ORDER BY {sort_by}
+LIMIT $5 OFFSET $6"
+    );
+    let fetch: Result<Vec<PlatesData>, sqlx::Error> = sqlx::query_as(&sql)
+        .bind(payload.users_id)
+        .bind(payload.price_under)
+        .bind(&payload.plates_type_id_list)
+        .bind(&payload.province_id_list)
+        .bind(payload.limit)
+        .bind(payload.offset)
+        .bind(payload.search_text_front_number)
+        .bind(payload.search_text_back_number)
+        .fetch_all(&pool)
+        .await;
+    let mut plates_list = match fetch {
+        Ok(ok) => {
+            if ok.len() < 20 {
+                ok
+            } else {
+                return Ok(Json(ok));
+            }
+        }
+        Err(_) => return Err(StatusCode::INTERNAL_SERVER_ERROR),
+    };
+    let sql = format!(
+        "WITH latest_price AS (
+    SELECT price_history.price_history_id,
+        price_history.plates_id,
+        price_history.price,
+        COUNT(lp.liked_plates_id) AS liked_plates_id_count,
+        COUNT(sp.saved_plates_id) AS saved_plates_id_count,
+        COUNT(lp.liked_plates_id) + COUNT(sp.saved_plates_id) AS reacts_count,
+        ROW_NUMBER() OVER (
+            PARTITION BY price_history.plates_id
+            ORDER BY price_history.price_history_id DESC
+        ) AS rownumber
+    FROM public.price_history
+        LEFT JOIN public.liked_plates AS lp ON lp.plates_id = price_history.plates_id
+        LEFT JOIN public.saved_plates AS sp ON sp.plates_id = price_history.plates_id
+    GROUP BY price_history.price_history_id,
+        price_history.plates_id,
+        price_history.price
+)
+SELECT plates.plates_id,
+    plates.front_text,
+    plates.plates_type_id,
+    plates.plates_uri,
+    plates.total,
+    plates.front_number,
+    plates.back_number,
+    plates.vehicle_type_id,
+    plates.users_id,
+    plates.special_front_id,
+    plates.province_id,
+    plates.information,
+    latest_price.price,
+    users.name,
+    users.profile_uri,
+    liked_plates.liked_plates_id,
+    saved_plates.saved_plates_id,
+    liked_store.liked_store_id,
+    saved_store.saved_store_id,
+    latest_price.liked_plates_id_count,
+    latest_price.saved_plates_id_count,
+    latest_price.reacts_count,
+    latest_price.rownumber
+FROM latest_price
+    INNER JOIN public.plates ON plates.plates_id = latest_price.plates_id
+    INNER JOIN public.users ON users.users_id = plates.users_id
+    LEFT JOIN public.liked_plates ON liked_plates.plates_id = plates.plates_id
+    AND liked_plates.users_id = $1
+    LEFT JOIN public.saved_plates ON saved_plates.plates_id = plates.plates_id
+    AND saved_plates.users_id = $1
+    LEFT JOIN public.liked_store ON liked_store.store_id = plates.users_id
+    AND liked_store.users_id = $1
+    LEFT JOIN public.saved_store ON saved_store.store_id = plates.users_id
+    AND saved_store.users_id = $1
+WHERE latest_price.rownumber = 1
+    AND is_selling IS TRUE
+    AND is_temporary IS NOT TRUE
+    AND latest_price.price <= $2
+    AND plates.plates_type_id IN (
+        SELECT unnest ($3::integer [])
+    )
+    AND plates.province_id IN (
+        SELECT unnest ($4::integer [])
+    )
+    AND plates.front_number = $7
+    AND CAST(plates.back_number AS text) LIKE '%{search_text_back_number}%'
+    AND plates.front_text LIKE '{search_text_front_text}%'
+ORDER BY {sort_by}
+LIMIT $5 OFFSET $6"
+    );
+    let fetch: Result<Vec<PlatesData>, sqlx::Error> = sqlx::query_as(&sql)
+        .bind(payload.users_id)
+        .bind(payload.price_under)
+        .bind(&payload.plates_type_id_list)
+        .bind(&payload.province_id_list)
+        .bind(payload.limit)
+        .bind(payload.offset)
+        .bind(payload.search_text_front_number)
+        .fetch_all(&pool)
+        .await;
+    match fetch {
+        Ok(mut ok) => {
+            plates_list.append(&mut ok);
+            Ok(Json(plates_list))
+        }
+        Err(_) => Err(StatusCode::INTERNAL_SERVER_ERROR),
+    }
 }
 
 pub async fn search_number_text(
     State(AppState { pool, client: _ }): State<AppState>,
     Json(payload): Json<PlatesFilter>,
 ) -> Result<Json<Vec<PlatesData>>, StatusCode> {
-    todo!()
+    let sort_by = order_by(payload.sort_by);
+    let search_text_front_text = payload.search_text_front_text;
+    let sql = format!(
+        "WITH latest_price AS (
+    SELECT price_history.price_history_id,
+        price_history.plates_id,
+        price_history.price,
+        COUNT(lp.liked_plates_id) AS liked_plates_id_count,
+        COUNT(sp.saved_plates_id) AS saved_plates_id_count,
+        COUNT(lp.liked_plates_id) + COUNT(sp.saved_plates_id) AS reacts_count,
+        ROW_NUMBER() OVER (
+            PARTITION BY price_history.plates_id
+            ORDER BY price_history.price_history_id DESC
+        ) AS rownumber
+    FROM public.price_history
+        LEFT JOIN public.liked_plates AS lp ON lp.plates_id = price_history.plates_id
+        LEFT JOIN public.saved_plates AS sp ON sp.plates_id = price_history.plates_id
+    GROUP BY price_history.price_history_id,
+        price_history.plates_id,
+        price_history.price
+)
+SELECT plates.plates_id,
+    plates.front_text,
+    plates.plates_type_id,
+    plates.plates_uri,
+    plates.total,
+    plates.front_number,
+    plates.back_number,
+    plates.vehicle_type_id,
+    plates.users_id,
+    plates.special_front_id,
+    plates.province_id,
+    plates.information,
+    latest_price.price,
+    users.name,
+    users.profile_uri,
+    liked_plates.liked_plates_id,
+    saved_plates.saved_plates_id,
+    liked_store.liked_store_id,
+    saved_store.saved_store_id,
+    latest_price.liked_plates_id_count,
+    latest_price.saved_plates_id_count,
+    latest_price.reacts_count,
+    latest_price.rownumber
+FROM latest_price
+    INNER JOIN public.plates ON plates.plates_id = latest_price.plates_id
+    INNER JOIN public.users ON users.users_id = plates.users_id
+    LEFT JOIN public.liked_plates ON liked_plates.plates_id = plates.plates_id
+    AND liked_plates.users_id = $1
+    LEFT JOIN public.saved_plates ON saved_plates.plates_id = plates.plates_id
+    AND saved_plates.users_id = $1
+    LEFT JOIN public.liked_store ON liked_store.store_id = plates.users_id
+    AND liked_store.users_id = $1
+    LEFT JOIN public.saved_store ON saved_store.store_id = plates.users_id
+    AND saved_store.users_id = $1
+WHERE latest_price.rownumber = 1
+    AND is_selling IS TRUE
+    AND is_temporary IS NOT TRUE
+    AND latest_price.price <= $2
+    AND plates.plates_type_id IN (
+        SELECT unnest ($3::integer [])
+    )
+    AND plates.province_id IN (
+        SELECT unnest ($4::integer [])
+    )
+    AND plates.front_number = $7
+    AND plates.front_text LIKE '{search_text_front_text}%'
+ORDER BY {sort_by}
+LIMIT $5 OFFSET $6"
+    );
+    let fetch: Result<Vec<PlatesData>, sqlx::Error> = sqlx::query_as(&sql)
+        .bind(payload.users_id)
+        .bind(payload.price_under)
+        .bind(&payload.plates_type_id_list)
+        .bind(&payload.province_id_list)
+        .bind(payload.limit)
+        .bind(payload.offset)
+        .bind(payload.search_text_front_number)
+        .fetch_all(&pool)
+        .await;
+    match fetch {
+        Ok(ok) => Ok(Json(ok)),
+        Err(_) => Err(StatusCode::INTERNAL_SERVER_ERROR),
+    }
 }
+
 pub async fn search_text_number(
     State(AppState { pool, client: _ }): State<AppState>,
     Json(payload): Json<PlatesFilter>,
 ) -> Result<Json<Vec<PlatesData>>, StatusCode> {
-    todo!()
+    let sort_by = order_by(payload.sort_by);
+    let search_text_front_text = payload.search_text_front_text;
+    let search_text_back_number = payload.search_text_back_number;
+    let sql = format!(
+        "WITH latest_price AS (
+    SELECT price_history.price_history_id,
+        price_history.plates_id,
+        price_history.price,
+        COUNT(lp.liked_plates_id) AS liked_plates_id_count,
+        COUNT(sp.saved_plates_id) AS saved_plates_id_count,
+        COUNT(lp.liked_plates_id) + COUNT(sp.saved_plates_id) AS reacts_count,
+        ROW_NUMBER() OVER (
+            PARTITION BY price_history.plates_id
+            ORDER BY price_history.price_history_id DESC
+        ) AS rownumber
+    FROM public.price_history
+        LEFT JOIN public.liked_plates AS lp ON lp.plates_id = price_history.plates_id
+        LEFT JOIN public.saved_plates AS sp ON sp.plates_id = price_history.plates_id
+    GROUP BY price_history.price_history_id,
+        price_history.plates_id,
+        price_history.price
+)
+SELECT plates.plates_id,
+    plates.front_text,
+    plates.plates_type_id,
+    plates.plates_uri,
+    plates.total,
+    plates.front_number,
+    plates.back_number,
+    plates.vehicle_type_id,
+    plates.users_id,
+    plates.special_front_id,
+    plates.province_id,
+    plates.information,
+    latest_price.price,
+    users.name,
+    users.profile_uri,
+    liked_plates.liked_plates_id,
+    saved_plates.saved_plates_id,
+    liked_store.liked_store_id,
+    saved_store.saved_store_id,
+    latest_price.liked_plates_id_count,
+    latest_price.saved_plates_id_count,
+    latest_price.reacts_count,
+    latest_price.rownumber
+FROM latest_price
+    INNER JOIN public.plates ON plates.plates_id = latest_price.plates_id
+    INNER JOIN public.users ON users.users_id = plates.users_id
+    LEFT JOIN public.liked_plates ON liked_plates.plates_id = plates.plates_id
+    AND liked_plates.users_id = $1
+    LEFT JOIN public.saved_plates ON saved_plates.plates_id = plates.plates_id
+    AND saved_plates.users_id = $1
+    LEFT JOIN public.liked_store ON liked_store.store_id = plates.users_id
+    AND liked_store.users_id = $1
+    LEFT JOIN public.saved_store ON saved_store.store_id = plates.users_id
+    AND saved_store.users_id = $1
+WHERE latest_price.rownumber = 1
+    AND is_selling IS TRUE
+    AND is_temporary IS NOT TRUE
+    AND latest_price.price <= $2
+    AND plates.plates_type_id IN (
+        SELECT unnest ($3::integer [])
+    )
+    AND plates.province_id IN (
+        SELECT unnest ($4::integer [])
+    )
+    AND plates.back_number = $7
+    AND plates.front_text LIKE '{search_text_front_text}%'
+ORDER BY {sort_by}
+LIMIT $5 OFFSET $6"
+    );
+    let fetch: Result<Vec<PlatesData>, sqlx::Error> = sqlx::query_as(&sql)
+        .bind(payload.users_id)
+        .bind(payload.price_under)
+        .bind(&payload.plates_type_id_list)
+        .bind(&payload.province_id_list)
+        .bind(payload.limit)
+        .bind(payload.offset)
+        .bind(search_text_back_number)
+        .fetch_all(&pool)
+        .await;
+    let mut plates_list = match fetch {
+        Ok(ok) => {
+            if ok.len() < 20 {
+                ok
+            } else {
+                return Ok(Json(ok));
+            }
+        }
+        Err(_) => return Err(StatusCode::INTERNAL_SERVER_ERROR),
+    };
+    let sql = format!(
+        "WITH latest_price AS (
+    SELECT price_history.price_history_id,
+        price_history.plates_id,
+        price_history.price,
+        COUNT(lp.liked_plates_id) AS liked_plates_id_count,
+        COUNT(sp.saved_plates_id) AS saved_plates_id_count,
+        COUNT(lp.liked_plates_id) + COUNT(sp.saved_plates_id) AS reacts_count,
+        ROW_NUMBER() OVER (
+            PARTITION BY price_history.plates_id
+            ORDER BY price_history.price_history_id DESC
+        ) AS rownumber
+    FROM public.price_history
+        LEFT JOIN public.liked_plates AS lp ON lp.plates_id = price_history.plates_id
+        LEFT JOIN public.saved_plates AS sp ON sp.plates_id = price_history.plates_id
+    GROUP BY price_history.price_history_id,
+        price_history.plates_id,
+        price_history.price
+)
+SELECT plates.plates_id,
+    plates.front_text,
+    plates.plates_type_id,
+    plates.plates_uri,
+    plates.total,
+    plates.front_number,
+    plates.back_number,
+    plates.vehicle_type_id,
+    plates.users_id,
+    plates.special_front_id,
+    plates.province_id,
+    plates.information,
+    latest_price.price,
+    users.name,
+    users.profile_uri,
+    liked_plates.liked_plates_id,
+    saved_plates.saved_plates_id,
+    liked_store.liked_store_id,
+    saved_store.saved_store_id,
+    latest_price.liked_plates_id_count,
+    latest_price.saved_plates_id_count,
+    latest_price.reacts_count,
+    latest_price.rownumber
+FROM latest_price
+    INNER JOIN public.plates ON plates.plates_id = latest_price.plates_id
+    INNER JOIN public.users ON users.users_id = plates.users_id
+    LEFT JOIN public.liked_plates ON liked_plates.plates_id = plates.plates_id
+    AND liked_plates.users_id = $1
+    LEFT JOIN public.saved_plates ON saved_plates.plates_id = plates.plates_id
+    AND saved_plates.users_id = $1
+    LEFT JOIN public.liked_store ON liked_store.store_id = plates.users_id
+    AND liked_store.users_id = $1
+    LEFT JOIN public.saved_store ON saved_store.store_id = plates.users_id
+    AND saved_store.users_id = $1
+WHERE latest_price.rownumber = 1
+    AND is_selling IS TRUE
+    AND is_temporary IS NOT TRUE
+    AND latest_price.price <= $2
+    AND plates.plates_type_id IN (
+        SELECT unnest ($3::integer [])
+    )
+    AND plates.province_id IN (
+        SELECT unnest ($4::integer [])
+    )
+    AND CAST(plates.back_number AS text) LIKE '%{search_text_back_number}%'
+    AND plates.front_text LIKE '{search_text_front_text}%'
+ORDER BY {sort_by}
+LIMIT $5 OFFSET $6"
+    );
+    let fetch: Result<Vec<PlatesData>, sqlx::Error> = sqlx::query_as(&sql)
+        .bind(payload.users_id)
+        .bind(payload.price_under)
+        .bind(&payload.plates_type_id_list)
+        .bind(&payload.province_id_list)
+        .bind(payload.limit)
+        .bind(payload.offset)
+        .fetch_all(&pool)
+        .await;
+    match fetch {
+        Ok(mut ok) => {
+            plates_list.append(&mut ok);
+            Ok(Json(plates_list))
+        }
+        Err(_) => Err(StatusCode::INTERNAL_SERVER_ERROR),
+    }
 }
 
 pub async fn search_text(
     State(AppState { pool, client: _ }): State<AppState>,
     Json(payload): Json<PlatesFilter>,
 ) -> Result<Json<Vec<PlatesData>>, StatusCode> {
-    todo!()
+    let sort_by = order_by(payload.sort_by);
+    let search_text_front_text = payload.search_text_front_text;
+    let sql = format!(
+        "WITH latest_price AS (
+    SELECT price_history.price_history_id,
+        price_history.plates_id,
+        price_history.price,
+        COUNT(lp.liked_plates_id) AS liked_plates_id_count,
+        COUNT(sp.saved_plates_id) AS saved_plates_id_count,
+        COUNT(lp.liked_plates_id) + COUNT(sp.saved_plates_id) AS reacts_count,
+        ROW_NUMBER() OVER (
+            PARTITION BY price_history.plates_id
+            ORDER BY price_history.price_history_id DESC
+        ) AS rownumber
+    FROM public.price_history
+        LEFT JOIN public.liked_plates AS lp ON lp.plates_id = price_history.plates_id
+        LEFT JOIN public.saved_plates AS sp ON sp.plates_id = price_history.plates_id
+    GROUP BY price_history.price_history_id,
+        price_history.plates_id,
+        price_history.price
+)
+SELECT plates.plates_id,
+    plates.front_text,
+    plates.plates_type_id,
+    plates.plates_uri,
+    plates.total,
+    plates.front_number,
+    plates.back_number,
+    plates.vehicle_type_id,
+    plates.users_id,
+    plates.special_front_id,
+    plates.province_id,
+    plates.information,
+    latest_price.price,
+    users.name,
+    users.profile_uri,
+    liked_plates.liked_plates_id,
+    saved_plates.saved_plates_id,
+    liked_store.liked_store_id,
+    saved_store.saved_store_id,
+    latest_price.liked_plates_id_count,
+    latest_price.saved_plates_id_count,
+    latest_price.reacts_count,
+    latest_price.rownumber
+FROM latest_price
+    INNER JOIN public.plates ON plates.plates_id = latest_price.plates_id
+    INNER JOIN public.users ON users.users_id = plates.users_id
+    LEFT JOIN public.liked_plates ON liked_plates.plates_id = plates.plates_id
+    AND liked_plates.users_id = $1
+    LEFT JOIN public.saved_plates ON saved_plates.plates_id = plates.plates_id
+    AND saved_plates.users_id = $1
+    LEFT JOIN public.liked_store ON liked_store.store_id = plates.users_id
+    AND liked_store.users_id = $1
+    LEFT JOIN public.saved_store ON saved_store.store_id = plates.users_id
+    AND saved_store.users_id = $1
+WHERE latest_price.rownumber = 1
+    AND is_selling IS TRUE
+    AND is_temporary IS NOT TRUE
+    AND latest_price.price <= $2
+    AND plates.plates_type_id IN (
+        SELECT unnest ($3::integer [])
+    )
+    AND plates.province_id IN (
+        SELECT unnest ($4::integer [])
+    )
+    AND plates.front_text LIKE '{search_text_front_text}%'
+ORDER BY {sort_by}
+LIMIT $5 OFFSET $6"
+    );
+    let fetch: Result<Vec<PlatesData>, sqlx::Error> = sqlx::query_as(&sql)
+        .bind(payload.users_id)
+        .bind(payload.price_under)
+        .bind(&payload.plates_type_id_list)
+        .bind(&payload.province_id_list)
+        .bind(payload.limit)
+        .bind(payload.offset)
+        .fetch_all(&pool)
+        .await;
+    match fetch {
+        Ok(ok) => Ok(Json(ok)),
+        Err(_) => Err(StatusCode::INTERNAL_SERVER_ERROR),
+    }
 }
 
-pub async fn search_users() {}
-
-// eq then like
 pub async fn search_number(
     State(AppState { pool, client: _ }): State<AppState>,
     Json(payload): Json<PlatesFilter>,
 ) -> Result<Json<Vec<PlatesData>>, StatusCode> {
-    todo!()
+    let sort_by = order_by(payload.sort_by);
+    let search_text_back_number = payload.search_text_back_number;
+    let sql = format!(
+        "WITH latest_price AS (
+    SELECT price_history.price_history_id,
+        price_history.plates_id,
+        price_history.price,
+        COUNT(lp.liked_plates_id) AS liked_plates_id_count,
+        COUNT(sp.saved_plates_id) AS saved_plates_id_count,
+        COUNT(lp.liked_plates_id) + COUNT(sp.saved_plates_id) AS reacts_count,
+        ROW_NUMBER() OVER (
+            PARTITION BY price_history.plates_id
+            ORDER BY price_history.price_history_id DESC
+        ) AS rownumber
+    FROM public.price_history
+        LEFT JOIN public.liked_plates AS lp ON lp.plates_id = price_history.plates_id
+        LEFT JOIN public.saved_plates AS sp ON sp.plates_id = price_history.plates_id
+    GROUP BY price_history.price_history_id,
+        price_history.plates_id,
+        price_history.price
+)
+SELECT plates.plates_id,
+    plates.front_text,
+    plates.plates_type_id,
+    plates.plates_uri,
+    plates.total,
+    plates.front_number,
+    plates.back_number,
+    plates.vehicle_type_id,
+    plates.users_id,
+    plates.special_front_id,
+    plates.province_id,
+    plates.information,
+    latest_price.price,
+    users.name,
+    users.profile_uri,
+    liked_plates.liked_plates_id,
+    saved_plates.saved_plates_id,
+    liked_store.liked_store_id,
+    saved_store.saved_store_id,
+    latest_price.liked_plates_id_count,
+    latest_price.saved_plates_id_count,
+    latest_price.reacts_count,
+    latest_price.rownumber
+FROM latest_price
+    INNER JOIN public.plates ON plates.plates_id = latest_price.plates_id
+    INNER JOIN public.users ON users.users_id = plates.users_id
+    LEFT JOIN public.liked_plates ON liked_plates.plates_id = plates.plates_id
+    AND liked_plates.users_id = $1
+    LEFT JOIN public.saved_plates ON saved_plates.plates_id = plates.plates_id
+    AND saved_plates.users_id = $1
+    LEFT JOIN public.liked_store ON liked_store.store_id = plates.users_id
+    AND liked_store.users_id = $1
+    LEFT JOIN public.saved_store ON saved_store.store_id = plates.users_id
+    AND saved_store.users_id = $1
+WHERE latest_price.rownumber = 1
+    AND is_selling IS TRUE
+    AND is_temporary IS NOT TRUE
+    AND latest_price.price <= $2
+    AND plates.plates_type_id IN (
+        SELECT unnest ($3::integer [])
+    )
+    AND plates.province_id IN (
+        SELECT unnest ($4::integer [])
+    )
+    AND plates.back_number = $7
+ORDER BY {sort_by}
+LIMIT $5 OFFSET $6"
+    );
+    let fetch: Result<Vec<PlatesData>, sqlx::Error> = sqlx::query_as(&sql)
+        .bind(payload.users_id)
+        .bind(payload.price_under)
+        .bind(&payload.plates_type_id_list)
+        .bind(&payload.province_id_list)
+        .bind(payload.limit)
+        .bind(payload.offset)
+        .bind(search_text_back_number)
+        .fetch_all(&pool)
+        .await;
+    let mut plates_list = match fetch {
+        Ok(ok) => {
+            if ok.len() < 20 {
+                ok
+            } else {
+                return Ok(Json(ok));
+            }
+        }
+        Err(_) => return Err(StatusCode::INTERNAL_SERVER_ERROR),
+    };
+    let sql = format!(
+        "WITH latest_price AS (
+    SELECT price_history.price_history_id,
+        price_history.plates_id,
+        price_history.price,
+        COUNT(lp.liked_plates_id) AS liked_plates_id_count,
+        COUNT(sp.saved_plates_id) AS saved_plates_id_count,
+        COUNT(lp.liked_plates_id) + COUNT(sp.saved_plates_id) AS reacts_count,
+        ROW_NUMBER() OVER (
+            PARTITION BY price_history.plates_id
+            ORDER BY price_history.price_history_id DESC
+        ) AS rownumber
+    FROM public.price_history
+        LEFT JOIN public.liked_plates AS lp ON lp.plates_id = price_history.plates_id
+        LEFT JOIN public.saved_plates AS sp ON sp.plates_id = price_history.plates_id
+    GROUP BY price_history.price_history_id,
+        price_history.plates_id,
+        price_history.price
+)
+SELECT plates.plates_id,
+    plates.front_text,
+    plates.plates_type_id,
+    plates.plates_uri,
+    plates.total,
+    plates.front_number,
+    plates.back_number,
+    plates.vehicle_type_id,
+    plates.users_id,
+    plates.special_front_id,
+    plates.province_id,
+    plates.information,
+    latest_price.price,
+    users.name,
+    users.profile_uri,
+    liked_plates.liked_plates_id,
+    saved_plates.saved_plates_id,
+    liked_store.liked_store_id,
+    saved_store.saved_store_id,
+    latest_price.liked_plates_id_count,
+    latest_price.saved_plates_id_count,
+    latest_price.reacts_count,
+    latest_price.rownumber
+FROM latest_price
+    INNER JOIN public.plates ON plates.plates_id = latest_price.plates_id
+    INNER JOIN public.users ON users.users_id = plates.users_id
+    LEFT JOIN public.liked_plates ON liked_plates.plates_id = plates.plates_id
+    AND liked_plates.users_id = $1
+    LEFT JOIN public.saved_plates ON saved_plates.plates_id = plates.plates_id
+    AND saved_plates.users_id = $1
+    LEFT JOIN public.liked_store ON liked_store.store_id = plates.users_id
+    AND liked_store.users_id = $1
+    LEFT JOIN public.saved_store ON saved_store.store_id = plates.users_id
+    AND saved_store.users_id = $1
+WHERE latest_price.rownumber = 1
+    AND is_selling IS TRUE
+    AND is_temporary IS NOT TRUE
+    AND latest_price.price <= $2
+    AND plates.plates_type_id IN (
+        SELECT unnest ($3::integer [])
+    )
+    AND plates.province_id IN (
+        SELECT unnest ($4::integer [])
+    )
+    AND CAST(plates.back_number AS text) LIKE '%{search_text_back_number}%'
+ORDER BY {sort_by}
+LIMIT $5 OFFSET $6"
+    );
+    let fetch: Result<Vec<PlatesData>, sqlx::Error> = sqlx::query_as(&sql)
+        .bind(payload.users_id)
+        .bind(payload.price_under)
+        .bind(&payload.plates_type_id_list)
+        .bind(&payload.province_id_list)
+        .bind(payload.limit)
+        .bind(payload.offset)
+        .fetch_all(&pool)
+        .await;
+    match fetch {
+        Ok(mut ok) => {
+            plates_list.append(&mut ok);
+            Ok(Json(plates_list))
+        }
+        Err(_) => Err(StatusCode::INTERNAL_SERVER_ERROR),
+    }
+}
+
+// here
+
+#[derive(Debug, Serialize, Deserialize, sqlx::FromRow)]
+pub struct Users {
+    pub users_id: i32,
+    pub name: String,
+    pub email: String,
+    pub profile_uri: Option<String>,
+    pub cover_uri: Option<String>,
+    pub information: Option<String>,
+    pub liked_store_id: Option<i32>,
+    pub saved_store_id: Option<i32>,
+}
+
+pub async fn search_users(
+    Query(params): Query<HashMap<String, String>>,
+    State(AppState { pool, client: _ }): State<AppState>,
+) -> Result<Json<Vec<Users>>, StatusCode> {
+    let search_text = match params.get("search_text") {
+        Some(some) => some.to_string(),
+        None => return Err(StatusCode::BAD_REQUEST),
+    };
+    let search_type = match params.get("search_type") {
+        Some(some) => some.to_string(),
+        None => return Err(StatusCode::BAD_REQUEST),
+    };
+    let sql = match search_type.as_str() {
+        "name" => "name",
+        "email" => "email",
+        _ => return Err(StatusCode::BAD_REQUEST),
+    };
+
+    //
+    Err(StatusCode::BAD_REQUEST)
 }

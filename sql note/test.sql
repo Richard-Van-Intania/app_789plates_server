@@ -60,6 +60,7 @@ WHERE latest_price.rownumber = 1
     AND plates.province_id IN (
         SELECT unnest ($4::integer [])
     )
-    AND CAST(plates.back_number AS text) LIKE '%{back_number}%'
+    AND plates.front_number = $7
+    AND plates.front_text LIKE '{search_text_front_text}%'
 ORDER BY { sort_by }
 LIMIT $5 OFFSET $6
