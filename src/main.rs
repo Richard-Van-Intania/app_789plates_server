@@ -12,7 +12,7 @@ use app_789plates_server::{
     },
     profile::{edit_information, edit_name, fetch_profile},
     query::{
-        query_pattern, query_plates_type_province, query_special_front,
+        query_explore, query_pattern, query_plates_type_province, query_special_front,
         query_suggestion_back_number, query_vehicle_type_province, search_number,
         search_number_text, search_number_text_number, search_text, search_text_number,
         search_users,
@@ -211,6 +211,10 @@ async fn main() {
         .route(
             "/query_suggestion_back_number",
             post(query_suggestion_back_number.layer(middleware::from_fn(validate_api_key))),
+        )
+        .route(
+            "/query_explore",
+            post(query_explore.layer(middleware::from_fn(validate_api_key))),
         )
         .route(
             "/search_number_text_number",

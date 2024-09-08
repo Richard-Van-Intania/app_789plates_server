@@ -60,6 +60,5 @@ WHERE latest_price.rownumber = 1
     AND plates.province_id IN (
         SELECT unnest ($4::integer [])
     )
-    AND plates.back_number = $7
 ORDER BY { sort_by }
 LIMIT $5 OFFSET $6
