@@ -1435,6 +1435,8 @@ pub async fn query_users_plates_unpin(
             ORDER BY price_history.price_history_id DESC
         ) AS rownumber
     FROM public.price_history
+        INNER JOIN public.plates ON plates.plates_id = price_history.plates_id
+        AND plates.users_id = $2
         LEFT JOIN public.liked_plates AS lp ON lp.plates_id = price_history.plates_id
         LEFT JOIN public.saved_plates AS sp ON sp.plates_id = price_history.plates_id
     GROUP BY price_history.price_history_id,
@@ -1513,6 +1515,8 @@ pub async fn query_users_plates_pin(
             ORDER BY price_history.price_history_id DESC
         ) AS rownumber
     FROM public.price_history
+        INNER JOIN public.plates ON plates.plates_id = price_history.plates_id
+        AND plates.users_id = $2
         LEFT JOIN public.liked_plates AS lp ON lp.plates_id = price_history.plates_id
         LEFT JOIN public.saved_plates AS sp ON sp.plates_id = price_history.plates_id
     GROUP BY price_history.price_history_id,

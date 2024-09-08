@@ -10,6 +10,8 @@ WITH latest_price AS (
             ORDER BY price_history.price_history_id DESC
         ) AS rownumber
     FROM public.price_history
+        INNER JOIN public.plates ON plates.plates_id = price_history.plates_id
+        AND plates.users_id = $2
         LEFT JOIN public.liked_plates AS lp ON lp.plates_id = price_history.plates_id
         LEFT JOIN public.saved_plates AS sp ON sp.plates_id = price_history.plates_id
     GROUP BY price_history.price_history_id,
@@ -54,6 +56,6 @@ WHERE latest_price.rownumber = 1
     AND plates.is_selling IS TRUE
     AND plates.is_temporary IS NOT TRUE
     AND plates.users_id = $2
-    AND plates.is_pin IS NOT TRUE
+    AND plates.is_pin IS TRUE
 ORDER BY plates.add_date DESC
 LIMIT $3 OFFSET $4
