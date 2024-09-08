@@ -183,6 +183,7 @@ pub async fn edit_is_selling(
     }
 }
 
+// check pin count
 pub async fn edit_is_pin(
     State(AppState { pool, client: _ }): State<AppState>,
     Json(payload): Json<Plates>,

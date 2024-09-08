@@ -15,7 +15,7 @@ use app_789plates_server::{
         query_explore, query_pattern, query_plates_type_province, query_special_front,
         query_suggestion_back_number, query_vehicle_type_province, search_number,
         search_number_text, search_number_text_number, search_text, search_text_number,
-        search_users,
+        search_users_info,
     },
     s3_operations::{generate_presigned_url, update_object},
     shutdown::shutdown_signal,
@@ -237,8 +237,8 @@ async fn main() {
             post(search_number.layer(middleware::from_fn(validate_api_key))),
         )
         .route(
-            "/search_users",
-            get(search_users.layer(middleware::from_fn(validate_api_key))),
+            "/search_users_info",
+            get(search_users_info.layer(middleware::from_fn(validate_api_key))),
         )
         .layer(TraceLayer::new_for_http())
         .layer(TimeoutLayer::new(time::Duration::from_secs(15)))

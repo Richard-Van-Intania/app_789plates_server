@@ -1,11 +1,7 @@
-use crate::{app_state::AppState, plates::UniversalId};
-use axum::{
-    extract::{Query, State},
-    Json,
-};
+use crate::app_state::AppState;
+use axum::{extract::State, Json};
 use hyper::StatusCode;
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct PlatesFilter {
@@ -132,8 +128,8 @@ FROM latest_price
     LEFT JOIN public.saved_store ON saved_store.store_id = plates.users_id
     AND saved_store.users_id = $1
 WHERE latest_price.rownumber = 1
-    AND is_selling IS TRUE
-    AND is_temporary IS NOT TRUE
+    AND plates.is_selling IS TRUE
+    AND plates.is_temporary IS NOT TRUE
     AND latest_price.price <= $2
     AND plates.plates_type_id IN (
         SELECT unnest ($3::integer [])
@@ -221,8 +217,8 @@ FROM latest_price
     LEFT JOIN public.saved_store ON saved_store.store_id = plates.users_id
     AND saved_store.users_id = $1
 WHERE latest_price.rownumber = 1
-    AND is_selling IS TRUE
-    AND is_temporary IS NOT TRUE
+    AND plates.is_selling IS TRUE
+    AND plates.is_temporary IS NOT TRUE
     AND latest_price.price <= $2
     AND plates.plates_type_id IN (
         SELECT unnest ($3::integer [])
@@ -308,8 +304,8 @@ FROM latest_price
     LEFT JOIN public.saved_store ON saved_store.store_id = plates.users_id
     AND saved_store.users_id = $1
 WHERE latest_price.rownumber = 1
-    AND is_selling IS TRUE
-    AND is_temporary IS NOT TRUE
+    AND plates.is_selling IS TRUE
+    AND plates.is_temporary IS NOT TRUE
     AND latest_price.price <= $2
     AND plates.plates_type_id IN (
         SELECT unnest ($3::integer [])
@@ -398,8 +394,8 @@ FROM latest_price
     LEFT JOIN public.saved_store ON saved_store.store_id = plates.users_id
     AND saved_store.users_id = $1
 WHERE latest_price.rownumber = 1
-    AND is_selling IS TRUE
-    AND is_temporary IS NOT TRUE
+    AND plates.is_selling IS TRUE
+    AND plates.is_temporary IS NOT TRUE
     AND latest_price.price <= $2
     AND plates.plates_type_id IN (
         SELECT unnest ($3::integer [])
@@ -488,8 +484,8 @@ FROM latest_price
     LEFT JOIN public.saved_store ON saved_store.store_id = plates.users_id
     AND saved_store.users_id = $1
 WHERE latest_price.rownumber = 1
-    AND is_selling IS TRUE
-    AND is_temporary IS NOT TRUE
+    AND plates.is_selling IS TRUE
+    AND plates.is_temporary IS NOT TRUE
     AND latest_price.price <= $2
     AND plates.plates_type_id IN (
         SELECT unnest ($3::integer [])
@@ -575,8 +571,8 @@ FROM latest_price
     LEFT JOIN public.saved_store ON saved_store.store_id = plates.users_id
     AND saved_store.users_id = $1
 WHERE latest_price.rownumber = 1
-    AND is_selling IS TRUE
-    AND is_temporary IS NOT TRUE
+    AND plates.is_selling IS TRUE
+    AND plates.is_temporary IS NOT TRUE
     AND latest_price.price <= $2
     AND plates.plates_type_id IN (
         SELECT unnest ($3::integer [])
@@ -665,8 +661,8 @@ FROM latest_price
     LEFT JOIN public.saved_store ON saved_store.store_id = plates.users_id
     AND saved_store.users_id = $1
 WHERE latest_price.rownumber = 1
-    AND is_selling IS TRUE
-    AND is_temporary IS NOT TRUE
+    AND plates.is_selling IS TRUE
+    AND plates.is_temporary IS NOT TRUE
     AND latest_price.price <= $2
     AND plates.plates_type_id IN (
         SELECT unnest ($3::integer [])
@@ -753,8 +749,8 @@ FROM latest_price
     LEFT JOIN public.saved_store ON saved_store.store_id = plates.users_id
     AND saved_store.users_id = $1
 WHERE latest_price.rownumber = 1
-    AND is_selling IS TRUE
-    AND is_temporary IS NOT TRUE
+    AND plates.is_selling IS TRUE
+    AND plates.is_temporary IS NOT TRUE
     AND latest_price.price <= $2
     AND plates.plates_type_id IN (
         SELECT unnest ($3::integer [])
@@ -843,8 +839,8 @@ FROM latest_price
     LEFT JOIN public.saved_store ON saved_store.store_id = plates.users_id
     AND saved_store.users_id = $1
 WHERE latest_price.rownumber = 1
-    AND is_selling IS TRUE
-    AND is_temporary IS NOT TRUE
+    AND plates.is_selling IS TRUE
+    AND plates.is_temporary IS NOT TRUE
     AND latest_price.price <= $2
     AND plates.plates_type_id IN (
         SELECT unnest ($3::integer [])
@@ -937,8 +933,8 @@ FROM latest_price
     LEFT JOIN public.saved_store ON saved_store.store_id = plates.users_id
     AND saved_store.users_id = $1
 WHERE latest_price.rownumber = 1
-    AND is_selling IS TRUE
-    AND is_temporary IS NOT TRUE
+    AND plates.is_selling IS TRUE
+    AND plates.is_temporary IS NOT TRUE
     AND latest_price.price <= $2
     AND plates.plates_type_id IN (
         SELECT unnest ($3::integer [])
@@ -1028,8 +1024,8 @@ FROM latest_price
     LEFT JOIN public.saved_store ON saved_store.store_id = plates.users_id
     AND saved_store.users_id = $1
 WHERE latest_price.rownumber = 1
-    AND is_selling IS TRUE
-    AND is_temporary IS NOT TRUE
+    AND plates.is_selling IS TRUE
+    AND plates.is_temporary IS NOT TRUE
     AND latest_price.price <= $2
     AND plates.plates_type_id IN (
         SELECT unnest ($3::integer [])
@@ -1116,8 +1112,8 @@ FROM latest_price
     LEFT JOIN public.saved_store ON saved_store.store_id = plates.users_id
     AND saved_store.users_id = $1
 WHERE latest_price.rownumber = 1
-    AND is_selling IS TRUE
-    AND is_temporary IS NOT TRUE
+    AND plates.is_selling IS TRUE
+    AND plates.is_temporary IS NOT TRUE
     AND latest_price.price <= $2
     AND plates.plates_type_id IN (
         SELECT unnest ($3::integer [])
@@ -1208,8 +1204,8 @@ FROM latest_price
     LEFT JOIN public.saved_store ON saved_store.store_id = plates.users_id
     AND saved_store.users_id = $1
 WHERE latest_price.rownumber = 1
-    AND is_selling IS TRUE
-    AND is_temporary IS NOT TRUE
+    AND plates.is_selling IS TRUE
+    AND plates.is_temporary IS NOT TRUE
     AND latest_price.price <= $2
     AND plates.plates_type_id IN (
         SELECT unnest ($3::integer [])
@@ -1296,8 +1292,8 @@ FROM latest_price
     LEFT JOIN public.saved_store ON saved_store.store_id = plates.users_id
     AND saved_store.users_id = $1
 WHERE latest_price.rownumber = 1
-    AND is_selling IS TRUE
-    AND is_temporary IS NOT TRUE
+    AND plates.is_selling IS TRUE
+    AND plates.is_temporary IS NOT TRUE
     AND latest_price.price <= $2
     AND plates.plates_type_id IN (
         SELECT unnest ($3::integer [])
@@ -1383,8 +1379,8 @@ FROM latest_price
     LEFT JOIN public.saved_store ON saved_store.store_id = plates.users_id
     AND saved_store.users_id = $1
 WHERE latest_price.rownumber = 1
-    AND is_selling IS TRUE
-    AND is_temporary IS NOT TRUE
+    AND plates.is_selling IS TRUE
+    AND plates.is_temporary IS NOT TRUE
     AND latest_price.price <= $2
     AND plates.plates_type_id IN (
         SELECT unnest ($3::integer [])
@@ -1414,35 +1410,200 @@ LIMIT $5 OFFSET $6"
     }
 }
 
-// here for get detail user return user id and their all of plates without filter
-pub async fn query_users(
-    State(AppState { pool, client: _ }): State<AppState>,
-    Json(payload): Json<UniversalId>,
-) {
-    todo!();
+#[derive(Debug, Serialize, Deserialize)]
+pub struct UsersId {
+    pub users_id: i32,
+    pub store_id: i32,
+    pub limit: i32,
+    pub offset: i32,
 }
 
-// here for search user list
+pub async fn query_users_plates_unpin(
+    State(AppState { pool, client: _ }): State<AppState>,
+    Json(payload): Json<UsersId>,
+) -> Result<Json<Vec<PlatesData>>, StatusCode> {
+    let sql = format!(
+        "WITH latest_price AS (
+    SELECT price_history.price_history_id,
+        price_history.plates_id,
+        price_history.price,
+        COUNT(lp.liked_plates_id) AS liked_plates_id_count,
+        COUNT(sp.saved_plates_id) AS saved_plates_id_count,
+        COUNT(lp.liked_plates_id) + COUNT(sp.saved_plates_id) AS reacts_count,
+        ROW_NUMBER() OVER (
+            PARTITION BY price_history.plates_id
+            ORDER BY price_history.price_history_id DESC
+        ) AS rownumber
+    FROM public.price_history
+        LEFT JOIN public.liked_plates AS lp ON lp.plates_id = price_history.plates_id
+        LEFT JOIN public.saved_plates AS sp ON sp.plates_id = price_history.plates_id
+    GROUP BY price_history.price_history_id,
+        price_history.plates_id,
+        price_history.price
+)
+SELECT plates.plates_id,
+    plates.front_text,
+    plates.plates_type_id,
+    plates.plates_uri,
+    plates.total,
+    plates.front_number,
+    plates.back_number,
+    plates.vehicle_type_id,
+    plates.users_id,
+    plates.special_front_id,
+    plates.province_id,
+    plates.information,
+    latest_price.price,
+    users.name,
+    users.profile_uri,
+    liked_plates.liked_plates_id,
+    saved_plates.saved_plates_id,
+    liked_store.liked_store_id,
+    saved_store.saved_store_id,
+    latest_price.liked_plates_id_count,
+    latest_price.saved_plates_id_count,
+    latest_price.reacts_count,
+    latest_price.rownumber
+FROM latest_price
+    INNER JOIN public.plates ON plates.plates_id = latest_price.plates_id
+    INNER JOIN public.users ON users.users_id = plates.users_id
+    LEFT JOIN public.liked_plates ON liked_plates.plates_id = plates.plates_id
+    AND liked_plates.users_id = $1
+    LEFT JOIN public.saved_plates ON saved_plates.plates_id = plates.plates_id
+    AND saved_plates.users_id = $1
+    LEFT JOIN public.liked_store ON liked_store.store_id = plates.users_id
+    AND liked_store.users_id = $1
+    LEFT JOIN public.saved_store ON saved_store.store_id = plates.users_id
+    AND saved_store.users_id = $1
+WHERE latest_price.rownumber = 1
+    AND plates.is_selling IS TRUE
+    AND plates.is_temporary IS NOT TRUE
+    AND plates.users_id = $2
+    AND plates.is_pin IS NOT TRUE
+ORDER BY plates.add_date DESC
+LIMIT $3 OFFSET $4"
+    );
+    let fetch: Result<Vec<PlatesData>, sqlx::Error> = sqlx::query_as(&sql)
+        .bind(payload.users_id)
+        .bind(payload.store_id)
+        .bind(payload.limit)
+        .bind(payload.offset)
+        .fetch_all(&pool)
+        .await;
+    match fetch {
+        Ok(ok) => Ok(Json(ok)),
+        Err(_) => Err(StatusCode::INTERNAL_SERVER_ERROR),
+    }
+}
+
+pub async fn query_users_plates_pin(
+    State(AppState { pool, client: _ }): State<AppState>,
+    Json(payload): Json<UsersId>,
+) -> Result<Json<Vec<PlatesData>>, StatusCode> {
+    let sql = format!(
+        "WITH latest_price AS (
+    SELECT price_history.price_history_id,
+        price_history.plates_id,
+        price_history.price,
+        COUNT(lp.liked_plates_id) AS liked_plates_id_count,
+        COUNT(sp.saved_plates_id) AS saved_plates_id_count,
+        COUNT(lp.liked_plates_id) + COUNT(sp.saved_plates_id) AS reacts_count,
+        ROW_NUMBER() OVER (
+            PARTITION BY price_history.plates_id
+            ORDER BY price_history.price_history_id DESC
+        ) AS rownumber
+    FROM public.price_history
+        LEFT JOIN public.liked_plates AS lp ON lp.plates_id = price_history.plates_id
+        LEFT JOIN public.saved_plates AS sp ON sp.plates_id = price_history.plates_id
+    GROUP BY price_history.price_history_id,
+        price_history.plates_id,
+        price_history.price
+)
+SELECT plates.plates_id,
+    plates.front_text,
+    plates.plates_type_id,
+    plates.plates_uri,
+    plates.total,
+    plates.front_number,
+    plates.back_number,
+    plates.vehicle_type_id,
+    plates.users_id,
+    plates.special_front_id,
+    plates.province_id,
+    plates.information,
+    latest_price.price,
+    users.name,
+    users.profile_uri,
+    liked_plates.liked_plates_id,
+    saved_plates.saved_plates_id,
+    liked_store.liked_store_id,
+    saved_store.saved_store_id,
+    latest_price.liked_plates_id_count,
+    latest_price.saved_plates_id_count,
+    latest_price.reacts_count,
+    latest_price.rownumber
+FROM latest_price
+    INNER JOIN public.plates ON plates.plates_id = latest_price.plates_id
+    INNER JOIN public.users ON users.users_id = plates.users_id
+    LEFT JOIN public.liked_plates ON liked_plates.plates_id = plates.plates_id
+    AND liked_plates.users_id = $1
+    LEFT JOIN public.saved_plates ON saved_plates.plates_id = plates.plates_id
+    AND saved_plates.users_id = $1
+    LEFT JOIN public.liked_store ON liked_store.store_id = plates.users_id
+    AND liked_store.users_id = $1
+    LEFT JOIN public.saved_store ON saved_store.store_id = plates.users_id
+    AND saved_store.users_id = $1
+WHERE latest_price.rownumber = 1
+    AND plates.is_selling IS TRUE
+    AND plates.is_temporary IS NOT TRUE
+    AND plates.users_id = $2
+    AND plates.is_pin IS TRUE
+ORDER BY plates.add_date DESC
+LIMIT $3 OFFSET $4"
+    );
+    let fetch: Result<Vec<PlatesData>, sqlx::Error> = sqlx::query_as(&sql)
+        .bind(payload.users_id)
+        .bind(payload.store_id)
+        .bind(payload.limit)
+        .bind(payload.offset)
+        .fetch_all(&pool)
+        .await;
+    match fetch {
+        Ok(ok) => Ok(Json(ok)),
+        Err(_) => Err(StatusCode::INTERNAL_SERVER_ERROR),
+    }
+}
+
+// here
+// search by name get users list
+
 #[derive(Debug, Serialize, Deserialize, sqlx::FromRow)]
-pub struct Users {
+pub struct UsersInfo {
     pub users_id: i32,
     pub name: String,
-    pub email: String,
     pub profile_uri: Option<String>,
     pub cover_uri: Option<String>,
     pub information: Option<String>,
     pub liked_store_id: Option<i32>,
     pub saved_store_id: Option<i32>,
+    pub liked_store_id_count: i64,
+    pub saved_store_id_count: i64,
+    pub total_assets: i64,
+    pub plates_count: i64,
+    pub average_score: f64,
 }
 
-pub async fn search_users(
-    Query(params): Query<HashMap<String, String>>,
+pub async fn search_users_info(
     State(AppState { pool, client: _ }): State<AppState>,
-) -> Result<Json<Vec<Users>>, StatusCode> {
-    let name = match params.get("name") {
-        Some(some) => some.to_string(),
-        None => return Err(StatusCode::BAD_REQUEST),
-    };
+    Json(payload): Json<UsersId>,
+) -> Result<Json<Vec<UsersInfo>>, StatusCode> {
+    Err(StatusCode::BAD_REQUEST)
+}
 
+// query by id from userlist or search list
+pub async fn query_users_info(
+    State(AppState { pool, client: _ }): State<AppState>,
+    Json(payload): Json<UsersId>,
+) -> Result<Json<UsersInfo>, StatusCode> {
     Err(StatusCode::BAD_REQUEST)
 }

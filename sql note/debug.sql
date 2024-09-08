@@ -23,6 +23,7 @@ SELECT plates.plates_id,
     plates.total,
     plates.front_number,
     plates.back_number,
+    plates.vehicle_type_id,
     plates.users_id,
     plates.special_front_id,
     plates.province_id,
@@ -50,14 +51,9 @@ FROM latest_price
     LEFT JOIN public.saved_store ON saved_store.store_id = plates.users_id
     AND saved_store.users_id = $1
 WHERE latest_price.rownumber = 1
-    AND is_selling IS TRUE
-    AND is_temporary IS NOT TRUE
-    AND latest_price.price <= $2
-    AND plates.plates_type_id IN (
-        SELECT unnest ($3::integer [])
-    )
-    AND plates.province_id IN (
-        SELECT unnest ($4::integer [])
-    )
-ORDER BY { }
-LIMIT $5 OFFSET $6
+    AND plates.is_selling IS TRUE
+    AND plates.is_temporary IS NOT TRUE
+    AND plates.users_id = $2
+    AND plates.is_pin IS NOT TRUE
+ORDER BY plates.add_date DESC
+LIMIT $3 OFFSET $4
