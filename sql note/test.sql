@@ -33,7 +33,6 @@ FROM latest_price
     LEFT JOIN public.liked_store AS ls ON ls.store_id = latest_price.users_id
     LEFT JOIN public.saved_store AS ss ON ss.store_id = latest_price.users_id
 WHERE latest_price.rownumber = 1
-    AND latest_price.users_id = 42
 GROUP BY users.users_id,
     liked_store.liked_store_id,
     saved_store.saved_store_id
