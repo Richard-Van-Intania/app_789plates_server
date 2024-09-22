@@ -183,27 +183,6 @@ pub async fn edit_is_selling(
     }
 }
 
-// check pin count
-pub async fn edit_is_pin(
-    State(AppState { pool, client: _ }): State<AppState>,
-    Json(payload): Json<Plates>,
-) -> StatusCode {
-    let update: Result<Option<(i32,)>, sqlx::Error> = sqlx::query_as(
-        "UPDATE public.plates SET is_pin = $1 WHERE plates_id = $2 RETURNING plates_id",
-    )
-    .bind(payload.is_pin)
-    .bind(payload.plates_id)
-    .fetch_optional(&pool)
-    .await;
-    match update {
-        Ok(ok) => match ok {
-            Some(_) => StatusCode::OK,
-            None => StatusCode::BAD_REQUEST,
-        },
-        Err(_) => StatusCode::INTERNAL_SERVER_ERROR,
-    }
-}
-
 pub async fn edit_total(
     State(AppState { pool, client: _ }): State<AppState>,
     Json(payload): Json<Plates>,
@@ -242,6 +221,57 @@ pub async fn delete_plates(
     }
 }
 
+pub async fn edit_is_pin(
+    State(AppState { pool, client: _ }): State<AppState>,
+    Json(payload): Json<Plates>,
+) -> StatusCode {
+    if payload.is_pin {
+        let count: Result<(i64,), sqlx::Error> = sqlx::query_as(
+            "SELECT COUNT(plates.plates_id) FROM public.plates WHERE plates.is_pin IS TRUE",
+        )
+        .fetch_one(&pool)
+        .await;
+        match count {
+            Ok((ok,)) => {
+                if ok < 30 {
+                    let update: Result<Option<(i32,)>, sqlx::Error> = sqlx::query_as(
+                        "UPDATE public.plates SET is_pin = $1 WHERE plates_id = $2 RETURNING plates_id",
+                    )
+                    .bind(payload.is_pin)
+                    .bind(payload.plates_id)
+                    .fetch_optional(&pool)
+                    .await;
+                    match update {
+                        Ok(ok) => match ok {
+                            Some(_) => StatusCode::OK,
+                            None => StatusCode::BAD_REQUEST,
+                        },
+                        Err(_) => StatusCode::INTERNAL_SERVER_ERROR,
+                    }
+                } else {
+                    StatusCode::CONFLICT
+                }
+            }
+            Err(_) => StatusCode::INTERNAL_SERVER_ERROR,
+        }
+    } else {
+        let update: Result<Option<(i32,)>, sqlx::Error> = sqlx::query_as(
+            "UPDATE public.plates SET is_pin = $1 WHERE plates_id = $2 RETURNING plates_id",
+        )
+        .bind(payload.is_pin)
+        .bind(payload.plates_id)
+        .fetch_optional(&pool)
+        .await;
+        match update {
+            Ok(ok) => match ok {
+                Some(_) => StatusCode::OK,
+                None => StatusCode::BAD_REQUEST,
+            },
+            Err(_) => StatusCode::INTERNAL_SERVER_ERROR,
+        }
+    }
+}
+
 pub async fn analyze_new_pattern(
     State(AppState { pool, client: _ }): State<AppState>,
 ) -> StatusCode {
@@ -268,6 +298,3 @@ pub async fn analyze_new_pattern(
         Err(_) => StatusCode::INTERNAL_SERVER_ERROR,
     }
 }
-
-// delete img
-// update img
