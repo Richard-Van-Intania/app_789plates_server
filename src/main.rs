@@ -195,67 +195,67 @@ async fn main() {
         // query
         .route(
             "/query_special_front",
-            post(query_special_front.layer(middleware::from_fn(validate_api_key))),
+            post(query_special_front.layer(middleware::from_fn(validate_token))),
         )
         .route(
             "/query_pattern",
-            post(query_pattern.layer(middleware::from_fn(validate_api_key))),
+            post(query_pattern.layer(middleware::from_fn(validate_token))),
         )
         .route(
             "/query_plates_type_province",
-            post(query_plates_type_province.layer(middleware::from_fn(validate_api_key))),
+            post(query_plates_type_province.layer(middleware::from_fn(validate_token))),
         )
         .route(
             "/query_vehicle_type_province",
-            post(query_vehicle_type_province.layer(middleware::from_fn(validate_api_key))),
+            post(query_vehicle_type_province.layer(middleware::from_fn(validate_token))),
         )
         .route(
             "/query_suggestion_back_number",
-            post(query_suggestion_back_number.layer(middleware::from_fn(validate_api_key))),
+            post(query_suggestion_back_number.layer(middleware::from_fn(validate_token))),
         )
         .route(
             "/query_explore",
-            post(query_explore.layer(middleware::from_fn(validate_api_key))),
+            post(query_explore.layer(middleware::from_fn(validate_token))),
         )
         .route(
             "/search_number_text_number",
-            post(search_number_text_number.layer(middleware::from_fn(validate_api_key))),
+            post(search_number_text_number.layer(middleware::from_fn(validate_token))),
         )
         .route(
             "/search_number_text",
-            post(search_number_text.layer(middleware::from_fn(validate_api_key))),
+            post(search_number_text.layer(middleware::from_fn(validate_token))),
         )
         .route(
             "/search_text_number",
-            post(search_text_number.layer(middleware::from_fn(validate_api_key))),
+            post(search_text_number.layer(middleware::from_fn(validate_token))),
         )
         .route(
             "/search_text",
-            post(search_text.layer(middleware::from_fn(validate_api_key))),
+            post(search_text.layer(middleware::from_fn(validate_token))),
         )
         .route(
             "/search_number",
-            post(search_number.layer(middleware::from_fn(validate_api_key))),
-        )
-        .route(
-            "/query_users_plates_pin",
-            post(query_users_plates_pin.layer(middleware::from_fn(validate_api_key))),
-        )
-        .route(
-            "/query_users_plates_unpin",
-            post(query_users_plates_unpin.layer(middleware::from_fn(validate_api_key))),
-        )
-        .route(
-            "/query_users_info",
-            post(query_users_info.layer(middleware::from_fn(validate_api_key))),
-        )
-        .route(
-            "/search_users_info",
-            post(search_users_info.layer(middleware::from_fn(validate_api_key))),
+            post(search_number.layer(middleware::from_fn(validate_token))),
         )
         .route(
             "/query_plates_info",
-            post(query_plates_info.layer(middleware::from_fn(validate_api_key))),
+            post(query_plates_info.layer(middleware::from_fn(validate_token))),
+        )
+        .route(
+            "/search_users_info",
+            post(search_users_info.layer(middleware::from_fn(validate_token))),
+        )
+        .route(
+            "/query_users_info",
+            post(query_users_info.layer(middleware::from_fn(validate_token))),
+        )
+        .route(
+            "/query_users_plates_pin",
+            post(query_users_plates_pin.layer(middleware::from_fn(validate_token))),
+        )
+        .route(
+            "/query_users_plates_unpin",
+            post(query_users_plates_unpin.layer(middleware::from_fn(validate_token))),
         )
         .layer(TraceLayer::new_for_http())
         .layer(TimeoutLayer::new(time::Duration::from_secs(15)))
