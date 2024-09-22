@@ -12,10 +12,11 @@ use app_789plates_server::{
     },
     profile::{edit_information, edit_name, fetch_profile},
     query::{
-        query_explore, query_pattern, query_plates_type_province, query_special_front,
-        query_suggestion_back_number, query_users_info, query_users_plates_pin,
-        query_users_plates_unpin, query_vehicle_type_province, search_number, search_number_text,
-        search_number_text_number, search_text, search_text_number, search_users_info,
+        query_explore, query_pattern, query_plates_info, query_plates_type_province,
+        query_special_front, query_suggestion_back_number, query_users_info,
+        query_users_plates_pin, query_users_plates_unpin, query_vehicle_type_province,
+        search_number, search_number_text, search_number_text_number, search_text,
+        search_text_number, search_users_info,
     },
     s3_operations::{generate_presigned_url, update_object},
     shutdown::shutdown_signal,
@@ -251,6 +252,10 @@ async fn main() {
         .route(
             "/search_users_info",
             post(search_users_info.layer(middleware::from_fn(validate_api_key))),
+        )
+        .route(
+            "/query_plates_info",
+            post(query_plates_info.layer(middleware::from_fn(validate_api_key))),
         )
         .layer(TraceLayer::new_for_http())
         .layer(TimeoutLayer::new(time::Duration::from_secs(15)))
