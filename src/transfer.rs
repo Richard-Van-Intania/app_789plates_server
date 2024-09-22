@@ -68,3 +68,5 @@ pub async fn accept_plates(
         Err(_) => StatusCode::INTERNAL_SERVER_ERROR,
     }
 }
+
+// query_transfer_plates

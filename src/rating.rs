@@ -10,5 +10,4 @@ pub struct Rating {
     pub add_date: String,
 }
 
-// fetch_rating
 // add_new_rating

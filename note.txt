@@ -125,4 +125,6 @@ numberTextNumber(id: 0), -- >eq all + eq eq like
 is_temporary hashtag may be day 2 other is day1
 remove what not use at last
 
+search log middle ware
+
 
