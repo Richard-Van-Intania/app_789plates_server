@@ -25,6 +25,12 @@ pub struct PlatesFilter {
     pub offset: i32,
 }
 
+#[derive(Debug, Serialize, Deserialize)]
+pub struct PlatesGroup {
+    pub exact: Vec<PlatesData>,
+    pub suggestion: Vec<PlatesData>,
+}
+
 #[derive(Debug, Serialize, Deserialize, sqlx::FromRow)]
 pub struct PlatesData {
     pub plates_id: i32,
@@ -59,6 +65,11 @@ pub struct UsersFilter {
     pub search_text: String,
     pub limit: i32,
     pub offset: i32,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct UsersGroup {
+    pub exact: Vec<UsersData>,
 }
 
 #[derive(Debug, Serialize, Deserialize, sqlx::FromRow)]
@@ -98,7 +109,7 @@ fn province_text(province_id: i32) -> &'static str {
 pub async fn query_special_front(
     State(AppState { pool, client: _ }): State<AppState>,
     Json(payload): Json<PlatesFilter>,
-) -> Result<Json<Vec<PlatesData>>, StatusCode> {
+) -> Result<Json<PlatesGroup>, StatusCode> {
     let sort_by = order_by(payload.sort_by);
     let sql = format!(
         "WITH latest_price AS (
@@ -177,7 +188,10 @@ LIMIT $5 OFFSET $6"
         .fetch_all(&pool)
         .await;
     match fetch {
-        Ok(ok) => Ok(Json(ok)),
+        Ok(ok) => Ok(Json(PlatesGroup {
+            exact: ok,
+            suggestion: Vec::new(),
+        })),
         Err(_) => Err(StatusCode::INTERNAL_SERVER_ERROR),
     }
 }
@@ -185,7 +199,7 @@ LIMIT $5 OFFSET $6"
 pub async fn query_pattern(
     State(AppState { pool, client: _ }): State<AppState>,
     Json(payload): Json<PlatesFilter>,
-) -> Result<Json<Vec<PlatesData>>, StatusCode> {
+) -> Result<Json<PlatesGroup>, StatusCode> {
     let sort_by = order_by(payload.sort_by);
     let pattern = payload.pattern;
     let sql = format!(
@@ -265,7 +279,10 @@ LIMIT $5 OFFSET $6"
         .fetch_all(&pool)
         .await;
     match fetch {
-        Ok(ok) => Ok(Json(ok)),
+        Ok(ok) => Ok(Json(PlatesGroup {
+            exact: ok,
+            suggestion: Vec::new(),
+        })),
         Err(_) => Err(StatusCode::INTERNAL_SERVER_ERROR),
     }
 }
@@ -273,7 +290,7 @@ LIMIT $5 OFFSET $6"
 pub async fn query_plates_type_province(
     State(AppState { pool, client: _ }): State<AppState>,
     Json(payload): Json<PlatesFilter>,
-) -> Result<Json<Vec<PlatesData>>, StatusCode> {
+) -> Result<Json<PlatesGroup>, StatusCode> {
     let sort_by = order_by(payload.sort_by);
     let province = province_text(payload.province_id);
     let sql = format!(
@@ -355,7 +372,10 @@ LIMIT $5 OFFSET $6"
         .fetch_all(&pool)
         .await;
     match fetch {
-        Ok(ok) => Ok(Json(ok)),
+        Ok(ok) => Ok(Json(PlatesGroup {
+            exact: ok,
+            suggestion: Vec::new(),
+        })),
         Err(_) => Err(StatusCode::INTERNAL_SERVER_ERROR),
     }
 }
@@ -363,7 +383,7 @@ LIMIT $5 OFFSET $6"
 pub async fn query_vehicle_type_province(
     State(AppState { pool, client: _ }): State<AppState>,
     Json(payload): Json<PlatesFilter>,
-) -> Result<Json<Vec<PlatesData>>, StatusCode> {
+) -> Result<Json<PlatesGroup>, StatusCode> {
     let sort_by = order_by(payload.sort_by);
     let province = province_text(payload.province_id);
     let sql = format!(
@@ -445,7 +465,10 @@ LIMIT $5 OFFSET $6"
         .fetch_all(&pool)
         .await;
     match fetch {
-        Ok(ok) => Ok(Json(ok)),
+        Ok(ok) => Ok(Json(PlatesGroup {
+            exact: ok,
+            suggestion: Vec::new(),
+        })),
         Err(_) => Err(StatusCode::INTERNAL_SERVER_ERROR),
     }
 }
@@ -453,7 +476,7 @@ LIMIT $5 OFFSET $6"
 pub async fn query_suggestion_back_number(
     State(AppState { pool, client: _ }): State<AppState>,
     Json(payload): Json<PlatesFilter>,
-) -> Result<Json<Vec<PlatesData>>, StatusCode> {
+) -> Result<Json<PlatesGroup>, StatusCode> {
     let sort_by = order_by(payload.sort_by);
     let back_number = payload.back_number;
     let sql = format!(
@@ -533,14 +556,8 @@ LIMIT $5 OFFSET $6"
         .bind(back_number)
         .fetch_all(&pool)
         .await;
-    let mut plates_list = match fetch {
-        Ok(ok) => {
-            if ok.len() < 20 {
-                ok
-            } else {
-                return Ok(Json(ok));
-            }
-        }
+    let exact = match fetch {
+        Ok(ok) => ok,
         Err(_) => return Err(StatusCode::INTERNAL_SERVER_ERROR),
     };
     let sql = format!(
@@ -619,19 +636,17 @@ LIMIT $5 OFFSET $6"
         .bind(payload.offset)
         .fetch_all(&pool)
         .await;
-    match fetch {
-        Ok(mut ok) => {
-            plates_list.append(&mut ok);
-            Ok(Json(plates_list))
-        }
-        Err(_) => Err(StatusCode::INTERNAL_SERVER_ERROR),
-    }
+    let suggestion = match fetch {
+        Ok(ok) => ok,
+        Err(_) => return Err(StatusCode::INTERNAL_SERVER_ERROR),
+    };
+    Ok(Json(PlatesGroup { exact, suggestion }))
 }
 
 pub async fn query_explore(
     State(AppState { pool, client: _ }): State<AppState>,
     Json(payload): Json<PlatesFilter>,
-) -> Result<Json<Vec<PlatesData>>, StatusCode> {
+) -> Result<Json<PlatesGroup>, StatusCode> {
     let sort_by = order_by(payload.sort_by);
     let sql = format!(
         "WITH latest_price AS (
@@ -709,7 +724,10 @@ LIMIT $5 OFFSET $6"
         .fetch_all(&pool)
         .await;
     match fetch {
-        Ok(ok) => Ok(Json(ok)),
+        Ok(ok) => Ok(Json(PlatesGroup {
+            exact: ok,
+            suggestion: Vec::new(),
+        })),
         Err(_) => Err(StatusCode::INTERNAL_SERVER_ERROR),
     }
 }
@@ -717,7 +735,7 @@ LIMIT $5 OFFSET $6"
 pub async fn search_number_text_number(
     State(AppState { pool, client: _ }): State<AppState>,
     Json(payload): Json<PlatesFilter>,
-) -> Result<Json<Vec<PlatesData>>, StatusCode> {
+) -> Result<Json<PlatesGroup>, StatusCode> {
     let sort_by = order_by(payload.sort_by);
     let search_text_front_text = payload.search_text_front_text;
     let search_text_back_number = payload.search_text_back_number;
@@ -801,14 +819,8 @@ LIMIT $5 OFFSET $6"
         .bind(payload.search_text_back_number)
         .fetch_all(&pool)
         .await;
-    let mut plates_list = match fetch {
-        Ok(ok) => {
-            if ok.len() < 20 {
-                ok
-            } else {
-                return Ok(Json(ok));
-            }
-        }
+    let exact = match fetch {
+        Ok(ok) => ok,
         Err(_) => return Err(StatusCode::INTERNAL_SERVER_ERROR),
     };
     let sql = format!(
@@ -890,19 +902,17 @@ LIMIT $5 OFFSET $6"
         .bind(payload.search_text_front_number)
         .fetch_all(&pool)
         .await;
-    match fetch {
-        Ok(mut ok) => {
-            plates_list.append(&mut ok);
-            Ok(Json(plates_list))
-        }
-        Err(_) => Err(StatusCode::INTERNAL_SERVER_ERROR),
-    }
+    let suggestion = match fetch {
+        Ok(ok) => ok,
+        Err(_) => return Err(StatusCode::INTERNAL_SERVER_ERROR),
+    };
+    Ok(Json(PlatesGroup { exact, suggestion }))
 }
 
 pub async fn search_number_text(
     State(AppState { pool, client: _ }): State<AppState>,
     Json(payload): Json<PlatesFilter>,
-) -> Result<Json<Vec<PlatesData>>, StatusCode> {
+) -> Result<Json<PlatesGroup>, StatusCode> {
     let sort_by = order_by(payload.sort_by);
     let search_text_front_text = payload.search_text_front_text;
     let sql = format!(
@@ -984,7 +994,10 @@ LIMIT $5 OFFSET $6"
         .fetch_all(&pool)
         .await;
     match fetch {
-        Ok(ok) => Ok(Json(ok)),
+        Ok(ok) => Ok(Json(PlatesGroup {
+            exact: ok,
+            suggestion: Vec::new(),
+        })),
         Err(_) => Err(StatusCode::INTERNAL_SERVER_ERROR),
     }
 }
@@ -992,7 +1005,7 @@ LIMIT $5 OFFSET $6"
 pub async fn search_text_number(
     State(AppState { pool, client: _ }): State<AppState>,
     Json(payload): Json<PlatesFilter>,
-) -> Result<Json<Vec<PlatesData>>, StatusCode> {
+) -> Result<Json<PlatesGroup>, StatusCode> {
     let sort_by = order_by(payload.sort_by);
     let search_text_front_text = payload.search_text_front_text;
     let search_text_back_number = payload.search_text_back_number;
@@ -1074,14 +1087,8 @@ LIMIT $5 OFFSET $6"
         .bind(search_text_back_number)
         .fetch_all(&pool)
         .await;
-    let mut plates_list = match fetch {
-        Ok(ok) => {
-            if ok.len() < 20 {
-                ok
-            } else {
-                return Ok(Json(ok));
-            }
-        }
+    let exact = match fetch {
+        Ok(ok) => ok,
         Err(_) => return Err(StatusCode::INTERNAL_SERVER_ERROR),
     };
     let sql = format!(
@@ -1161,19 +1168,17 @@ LIMIT $5 OFFSET $6"
         .bind(payload.offset)
         .fetch_all(&pool)
         .await;
-    match fetch {
-        Ok(mut ok) => {
-            plates_list.append(&mut ok);
-            Ok(Json(plates_list))
-        }
-        Err(_) => Err(StatusCode::INTERNAL_SERVER_ERROR),
-    }
+    let suggestion = match fetch {
+        Ok(ok) => ok,
+        Err(_) => return Err(StatusCode::INTERNAL_SERVER_ERROR),
+    };
+    Ok(Json(PlatesGroup { exact, suggestion }))
 }
 
 pub async fn search_text(
     State(AppState { pool, client: _ }): State<AppState>,
     Json(payload): Json<PlatesFilter>,
-) -> Result<Json<Vec<PlatesData>>, StatusCode> {
+) -> Result<Json<PlatesGroup>, StatusCode> {
     let sort_by = order_by(payload.sort_by);
     let search_text_front_text = payload.search_text_front_text;
     let sql = format!(
@@ -1253,7 +1258,10 @@ LIMIT $5 OFFSET $6"
         .fetch_all(&pool)
         .await;
     match fetch {
-        Ok(ok) => Ok(Json(ok)),
+        Ok(ok) => Ok(Json(PlatesGroup {
+            exact: ok,
+            suggestion: Vec::new(),
+        })),
         Err(_) => Err(StatusCode::INTERNAL_SERVER_ERROR),
     }
 }
@@ -1261,7 +1269,7 @@ LIMIT $5 OFFSET $6"
 pub async fn search_number(
     State(AppState { pool, client: _ }): State<AppState>,
     Json(payload): Json<PlatesFilter>,
-) -> Result<Json<Vec<PlatesData>>, StatusCode> {
+) -> Result<Json<PlatesGroup>, StatusCode> {
     let sort_by = order_by(payload.sort_by);
     let search_text_back_number = payload.search_text_back_number;
     let sql = format!(
@@ -1341,14 +1349,8 @@ LIMIT $5 OFFSET $6"
         .bind(search_text_back_number)
         .fetch_all(&pool)
         .await;
-    let mut plates_list = match fetch {
-        Ok(ok) => {
-            if ok.len() < 20 {
-                ok
-            } else {
-                return Ok(Json(ok));
-            }
-        }
+    let exact = match fetch {
+        Ok(ok) => ok,
         Err(_) => return Err(StatusCode::INTERNAL_SERVER_ERROR),
     };
     let sql = format!(
@@ -1427,19 +1429,17 @@ LIMIT $5 OFFSET $6"
         .bind(payload.offset)
         .fetch_all(&pool)
         .await;
-    match fetch {
-        Ok(mut ok) => {
-            plates_list.append(&mut ok);
-            Ok(Json(plates_list))
-        }
-        Err(_) => Err(StatusCode::INTERNAL_SERVER_ERROR),
-    }
+    let suggestion = match fetch {
+        Ok(ok) => ok,
+        Err(_) => return Err(StatusCode::INTERNAL_SERVER_ERROR),
+    };
+    Ok(Json(PlatesGroup { exact, suggestion }))
 }
 
 pub async fn query_plates_info(
     State(AppState { pool, client: _ }): State<AppState>,
     Json(payload): Json<PlatesFilter>,
-) -> Result<Json<Vec<PlatesData>>, StatusCode> {
+) -> Result<Json<PlatesGroup>, StatusCode> {
     let sql = format!(
         "WITH latest_price AS (
     SELECT price_history.price_history_id,
@@ -1504,7 +1504,10 @@ WHERE latest_price.rownumber = 1
         .fetch_all(&pool)
         .await;
     match fetch {
-        Ok(ok) => Ok(Json(ok)),
+        Ok(ok) => Ok(Json(PlatesGroup {
+            exact: ok,
+            suggestion: Vec::new(),
+        })),
         Err(_) => Err(StatusCode::INTERNAL_SERVER_ERROR),
     }
 }
@@ -1512,7 +1515,7 @@ WHERE latest_price.rownumber = 1
 pub async fn search_users_info(
     State(AppState { pool, client: _ }): State<AppState>,
     Json(payload): Json<UsersFilter>,
-) -> Result<Json<Vec<UsersData>>, StatusCode> {
+) -> Result<Json<UsersGroup>, StatusCode> {
     let search_text = payload.search_text;
     let sql = format!(
         "WITH latest_price AS (
@@ -1562,7 +1565,7 @@ GROUP BY users.users_id,
         .fetch_all(&pool)
         .await;
     match fetch {
-        Ok(ok) => Ok(Json(ok)),
+        Ok(ok) => Ok(Json(UsersGroup { exact: ok })),
         Err(_) => Err(StatusCode::INTERNAL_SERVER_ERROR),
     }
 }
@@ -1570,7 +1573,7 @@ GROUP BY users.users_id,
 pub async fn query_users_info(
     State(AppState { pool, client: _ }): State<AppState>,
     Json(payload): Json<UsersFilter>,
-) -> Result<Json<Vec<UsersData>>, StatusCode> {
+) -> Result<Json<UsersGroup>, StatusCode> {
     let sql = format!(
         "WITH latest_price AS (
     SELECT price_history.price_history_id,
@@ -1619,7 +1622,7 @@ GROUP BY users.users_id,
         .fetch_all(&pool)
         .await;
     match fetch {
-        Ok(ok) => Ok(Json(ok)),
+        Ok(ok) => Ok(Json(UsersGroup { exact: ok })),
         Err(_) => Err(StatusCode::INTERNAL_SERVER_ERROR),
     }
 }
@@ -1627,7 +1630,7 @@ GROUP BY users.users_id,
 pub async fn query_users_plates_pin(
     State(AppState { pool, client: _ }): State<AppState>,
     Json(payload): Json<UsersFilter>,
-) -> Result<Json<Vec<PlatesData>>, StatusCode> {
+) -> Result<Json<PlatesGroup>, StatusCode> {
     let sql = format!(
         "WITH latest_price AS (
     SELECT price_history.price_history_id,
@@ -1699,7 +1702,10 @@ LIMIT $3 OFFSET $4"
         .fetch_all(&pool)
         .await;
     match fetch {
-        Ok(ok) => Ok(Json(ok)),
+        Ok(ok) => Ok(Json(PlatesGroup {
+            exact: ok,
+            suggestion: Vec::new(),
+        })),
         Err(_) => Err(StatusCode::INTERNAL_SERVER_ERROR),
     }
 }
@@ -1707,7 +1713,7 @@ LIMIT $3 OFFSET $4"
 pub async fn query_users_plates_unpin(
     State(AppState { pool, client: _ }): State<AppState>,
     Json(payload): Json<UsersFilter>,
-) -> Result<Json<Vec<PlatesData>>, StatusCode> {
+) -> Result<Json<PlatesGroup>, StatusCode> {
     let sql = format!(
         "WITH latest_price AS (
     SELECT price_history.price_history_id,
@@ -1779,7 +1785,10 @@ LIMIT $3 OFFSET $4"
         .fetch_all(&pool)
         .await;
     match fetch {
-        Ok(ok) => Ok(Json(ok)),
+        Ok(ok) => Ok(Json(PlatesGroup {
+            exact: ok,
+            suggestion: Vec::new(),
+        })),
         Err(_) => Err(StatusCode::INTERNAL_SERVER_ERROR),
     }
 }
