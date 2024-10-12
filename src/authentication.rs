@@ -10,7 +10,7 @@ use axum::{extract::State, Json};
 use chrono::{DateTime, Duration, Utc};
 use hyper::StatusCode;
 use jsonwebtoken::{decode, encode, DecodingKey, EncodingKey, Header, TokenData, Validation};
-use rand::{random, rngs::SmallRng, Rng, SeedableRng};
+use rand::Rng;
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -43,10 +43,8 @@ pub async fn create_verification(
     State(AppState { pool, client: _ }): State<AppState>,
     Json(payload): Json<Authentication>,
 ) -> Result<Json<Authentication>, StatusCode> {
-    let rand: u8 = random();
-    let reference: i32 = rand as i32;
-    let mut small_rng = SmallRng::from_entropy();
-    let code: i32 = small_rng.gen_range(999..999999);
+    let reference = rand::thread_rng().gen_range(1..=99);
+    let code = rand::thread_rng().gen_range(10000..=999999);
     let expire: DateTime<Utc> = Utc::now() + Duration::minutes(MINUTES);
     let insert: Result<(i32, i32), sqlx::Error> = sqlx::query_as("INSERT INTO public.verification(reference, code, expire) VALUES ($1, $2, $3) RETURNING verification_id, reference")
         .bind(reference)
@@ -261,10 +259,8 @@ pub async fn create_verification_forgot(
         .await;
     if let Ok(rows) = fetch {
         if !rows.is_empty() {
-            let rand: u8 = random();
-            let reference: i32 = rand as i32;
-            let mut small_rng = SmallRng::from_entropy();
-            let code: i32 = small_rng.gen_range(999..999999);
+            let reference = rand::thread_rng().gen_range(1..=99);
+            let code = rand::thread_rng().gen_range(10000..=999999);
             let expire: DateTime<Utc> = Utc::now() + Duration::minutes(MINUTES);
             let insert: Result<(i32,), sqlx::Error> = sqlx::query_as("INSERT INTO public.verification(reference, code, expire) VALUES ($1, $2, $3) RETURNING verification_id")
                 .bind(reference)
