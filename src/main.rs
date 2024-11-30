@@ -135,6 +135,7 @@ async fn main() {
                 ),
             ),
         )
+        // here
         .route(
             "/fetch_profile",
             post(fetch_profile.layer(middleware::from_fn(validate_token))),
@@ -159,7 +160,6 @@ async fn main() {
             "/fetch_special_front",
             get(fetch_special_front.layer(middleware::from_fn(validate_token))),
         )
-        // here
         .route(
             "/add_new_plates",
             post(add_new_plates.layer(middleware::from_fn(validate_token))),
@@ -192,7 +192,6 @@ async fn main() {
             "/analyze_new_pattern",
             get(analyze_new_pattern.layer(middleware::from_fn(validate_api_key))),
         )
-        // query
         .route(
             "/query_special_front",
             post(query_special_front.layer(middleware::from_fn(validate_token))),
