@@ -96,7 +96,8 @@ fn order_by(sort_by: String) -> &'static str {
         "priceHighToLow" => "latest_price.price DESC",
         "reacts" => "latest_price.reacts_count DESC",
         "random" => "RANDOM()",
-        _ => "latest_price.price ASC",
+        "addDate" => "plates.add_date DESC",
+        _ => "plates.add_date DESC",
     }
 }
 
