@@ -637,7 +637,7 @@ pub async fn analyze_pattern(
                 .await;
     }
     // pattern_kob
-    if front_text == "กบ" {
+    if front_number == 0 && vehicle_type_id == 1 && front_text == "กบ" {
         let _ = sqlx::query("INSERT INTO public.pattern_kob(plates_id, add_date) VALUES ($1, $2)")
             .bind(plates_id)
             .bind(add_date)
@@ -652,5 +652,15 @@ pub async fn analyze_pattern(
                 .bind(add_date)
                 .execute(pool)
                 .await;
+    }
+    // pattern_korkai_korkai
+    if front_number == 0 && vehicle_type_id == 1 && front_text == "กก" {
+        let _ = sqlx::query(
+            "INSERT INTO public.pattern_korkai_korkai(plates_id, add_date) VALUES ($1, $2)",
+        )
+        .bind(plates_id)
+        .bind(add_date)
+        .execute(pool)
+        .await;
     }
 }
