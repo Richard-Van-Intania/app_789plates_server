@@ -7,7 +7,7 @@ pub const NULL_ALIAS_INT: i32 = 0;
 
 pub const API_KEY: &'static str = "A46442B3454C93571153AB45137A2";
 
-pub const ISSUER: &'static str = "app789plates";
+pub const ISSUER: &'static str = "tb789";
 pub const EXP_MIN: i64 = 180;
 pub const EXP_DAY: i64 = 30;
 pub const ACCESS_TOKEN_KEY: &'static str = "618C654BBBF31A6D315BA7AB8AB2A";
