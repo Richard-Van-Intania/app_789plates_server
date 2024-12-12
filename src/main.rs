@@ -257,7 +257,7 @@ async fn main() {
             post(query_users_plates_unpin.layer(middleware::from_fn(validate_token))),
         )
         .layer(TraceLayer::new_for_http())
-        .layer(TimeoutLayer::new(time::Duration::from_secs(15)))
+        .layer(TimeoutLayer::new(time::Duration::from_secs(10)))
         .with_state(state);
     let listener = tokio::net::TcpListener::bind("0.0.0.0:8700").await.unwrap();
     axum::serve(listener, app)
