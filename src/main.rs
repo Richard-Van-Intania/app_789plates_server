@@ -7,8 +7,10 @@ use app_789plates_server::{
     constants::{AWS_ACCESS_KEY_ID, AWS_REGION, AWS_SECRET_ACCESS_KEY},
     middleware::{validate_api_key, validate_email, validate_email_unique, validate_token},
     plates::{
-        add_new_plates, analyze_new_pattern, delete_plates, edit_is_pin, edit_is_selling,
-        edit_plates_information, edit_total, fetch_special_front, insert_new_price,
+        add_liked_plates, add_liked_store, add_new_plates, add_saved_plates, add_saved_store,
+        analyze_new_pattern, delete_plates, edit_is_pin, edit_is_selling, edit_plates_information,
+        edit_total, fetch_special_front, insert_new_price, remove_liked_plates, remove_liked_store,
+        remove_saved_plates, remove_saved_store,
     },
     profile::{edit_information, edit_name, fetch_profile},
     query::{
@@ -34,19 +36,16 @@ use tower_http::{timeout::TimeoutLayer, trace::TraceLayer};
 
 #[tokio::main]
 async fn main() {
-    // logging and diagnostics system
     tracing_subscriber::fmt()
         .with_max_level(tracing::Level::DEBUG)
         .init();
 
-    // aws s3
     env::set_var("AWS_ACCESS_KEY_ID", AWS_ACCESS_KEY_ID);
     env::set_var("AWS_SECRET_ACCESS_KEY", AWS_SECRET_ACCESS_KEY);
     env::set_var("AWS_REGION", AWS_REGION);
     let config = aws_config::load_from_env().await;
     let client = aws_sdk_s3::Client::new(&config);
 
-    // postgresql
     let pool = PgPool::connect("postgres://postgres:postgres@localhost:5432/production")
         .await
         .unwrap();
@@ -135,7 +134,6 @@ async fn main() {
                 ),
             ),
         )
-        // here
         .route(
             "/fetch_profile",
             post(fetch_profile.layer(middleware::from_fn(validate_token))),
@@ -191,6 +189,38 @@ async fn main() {
         .route(
             "/analyze_new_pattern",
             get(analyze_new_pattern.layer(middleware::from_fn(validate_api_key))),
+        )
+        .route(
+            "/add_liked_plates",
+            post(add_liked_plates.layer(middleware::from_fn(validate_token))),
+        )
+        .route(
+            "/remove_liked_plates",
+            delete(remove_liked_plates.layer(middleware::from_fn(validate_token))),
+        )
+        .route(
+            "/add_saved_plates",
+            post(add_saved_plates.layer(middleware::from_fn(validate_token))),
+        )
+        .route(
+            "/remove_saved_plates",
+            delete(remove_saved_plates.layer(middleware::from_fn(validate_token))),
+        )
+        .route(
+            "/add_liked_store",
+            post(add_liked_store.layer(middleware::from_fn(validate_token))),
+        )
+        .route(
+            "/remove_liked_store",
+            delete(remove_liked_store.layer(middleware::from_fn(validate_token))),
+        )
+        .route(
+            "/add_saved_store",
+            post(add_saved_store.layer(middleware::from_fn(validate_token))),
+        )
+        .route(
+            "/remove_saved_store",
+            delete(remove_saved_store.layer(middleware::from_fn(validate_token))),
         )
         .route(
             "/query_special_front",
@@ -259,6 +289,7 @@ async fn main() {
         .layer(TraceLayer::new_for_http())
         .layer(TimeoutLayer::new(time::Duration::from_secs(10)))
         .with_state(state);
+
     let listener = tokio::net::TcpListener::bind("0.0.0.0:8700").await.unwrap();
     axum::serve(listener, app)
         .with_graceful_shutdown(shutdown_signal())
