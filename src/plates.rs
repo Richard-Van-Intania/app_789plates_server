@@ -1,4 +1,4 @@
-use crate::{app_state::AppState, pattern::analyze_pattern};
+use crate::{app_state::AppState, pattern::analyze_pattern, query::PlatesFilter};
 use axum::{extract::State, Json};
 use chrono::Utc;
 use hyper::StatusCode;
@@ -295,6 +295,41 @@ pub async fn analyze_new_pattern(
             }
             StatusCode::OK
         }
+        Err(_) => StatusCode::INTERNAL_SERVER_ERROR,
+    }
+}
+
+pub async fn add_liked_plates(
+    State(AppState { pool, client: _ }): State<AppState>,
+    Json(payload): Json<PlatesFilter>,
+) -> StatusCode {
+    let add_date = Utc::now();
+    let insert = sqlx::query(
+        "INSERT INTO public.liked_plates(users_id, plates_id, add_date) VALUES ($1, $2, $3)",
+    )
+    .bind(payload.users_id)
+    .bind(payload.plates_id)
+    .bind(add_date)
+    .execute(&pool)
+    .await;
+    match insert {
+        Ok(_) => StatusCode::OK,
+        Err(_) => StatusCode::INTERNAL_SERVER_ERROR,
+    }
+}
+
+pub async fn remove_liked_plates(
+    State(AppState { pool, client: _ }): State<AppState>,
+    Json(payload): Json<PlatesFilter>,
+) -> StatusCode {
+    let delete =
+        sqlx::query("DELETE FROM public.liked_plates WHERE (users_id = $1 AND plates_id = $2)")
+            .bind(payload.users_id)
+            .bind(payload.plates_id)
+            .execute(&pool)
+            .await;
+    match delete {
+        Ok(_) => StatusCode::OK,
         Err(_) => StatusCode::INTERNAL_SERVER_ERROR,
     }
 }
