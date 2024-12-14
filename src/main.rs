@@ -196,7 +196,7 @@ async fn main() {
         )
         .route(
             "/remove_liked_plates",
-            delete(remove_liked_plates.layer(middleware::from_fn(validate_token))),
+            post(remove_liked_plates.layer(middleware::from_fn(validate_token))),
         )
         .route(
             "/add_saved_plates",
@@ -204,7 +204,7 @@ async fn main() {
         )
         .route(
             "/remove_saved_plates",
-            delete(remove_saved_plates.layer(middleware::from_fn(validate_token))),
+            post(remove_saved_plates.layer(middleware::from_fn(validate_token))),
         )
         .route(
             "/add_liked_store",
@@ -212,7 +212,7 @@ async fn main() {
         )
         .route(
             "/remove_liked_store",
-            delete(remove_liked_store.layer(middleware::from_fn(validate_token))),
+            post(remove_liked_store.layer(middleware::from_fn(validate_token))),
         )
         .route(
             "/add_saved_store",
@@ -220,7 +220,7 @@ async fn main() {
         )
         .route(
             "/remove_saved_store",
-            delete(remove_saved_store.layer(middleware::from_fn(validate_token))),
+            post(remove_saved_store.layer(middleware::from_fn(validate_token))),
         )
         .route(
             "/query_special_front",
