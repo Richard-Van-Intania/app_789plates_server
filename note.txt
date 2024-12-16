@@ -137,3 +137,5 @@ TB789
 new name new repo b4 deploy
 
 remove deplicate
+
+react count
