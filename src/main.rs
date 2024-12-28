@@ -290,7 +290,7 @@ async fn main() {
         .layer(TimeoutLayer::new(time::Duration::from_secs(10)))
         .with_state(state);
 
-    let listener = tokio::net::TcpListener::bind("0.0.0.0:8700").await.unwrap();
+    let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await.unwrap();
     axum::serve(listener, app)
         .with_graceful_shutdown(shutdown_signal())
         .await
