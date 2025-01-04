@@ -16,7 +16,7 @@ pub fn send_email(email: &str, reference: i32, code: i32) -> Result<Response, Er
         .from(EMAIL.parse().unwrap())
         .to(email.parse().unwrap())
         .subject(format!(
-            "Verification code from 789plates, reference: {reference}"
+            "Verification code from TB789, reference: {reference}"
         ))
         .header(ContentType::TEXT_HTML)
         .body(format!(
