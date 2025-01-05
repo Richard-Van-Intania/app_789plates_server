@@ -5,13 +5,13 @@ pub const MINUTES: i64 = 15;
 pub const NULL_ALIAS_STRING: &'static str = "null";
 pub const NULL_ALIAS_INT: i32 = 0;
 
-pub const API_KEY: &'static str = "A46442B3454C93571153AB45137A2";
+pub const API_KEY: &'static str = "vGYGtJDoQAiTOXsiQr8d5rT17L5EOAur";
 
 pub const ISSUER: &'static str = "TB789";
 pub const EXP_MIN: i64 = 180;
 pub const EXP_DAY: i64 = 30;
-pub const ACCESS_TOKEN_KEY: &'static str = "618C654BBBF31A6D315BA7AB8AB2A";
-pub const REFRESH_TOKEN_KEY: &'static str = "D586891172B4BFC6AD15B449DB593";
+pub const ACCESS_TOKEN_KEY: &'static str = "ZwCDIhpe01hXuMYQS6R3Xw7ziCZ3B639";
+pub const REFRESH_TOKEN_KEY: &'static str = "pveoe7pl0wG33vJFoQH0EkX0x1w9A2UZ";
 
 pub const LIMIT: usize = 5242880;
 
