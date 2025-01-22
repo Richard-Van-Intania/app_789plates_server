@@ -6,30 +6,30 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-tokio = { version = "1.42.0", features = ["full"] }
+tokio = { version = "1.43.0", features = ["full"] }
 tower = { version = "0.5.2", features = ["full"] }
 tower-http = { version = "0.6.2", features = ["full"] }
-axum = { version = "0.8.1", features = ["http2", "ws"] }
-axum-extra = { version = "0.10.0", features = ["typed-header"] }
-serde = { version = "1.0.215", features = ["derive"] }
-sqlx = { version = "0.8.2", features = [
+axum = { version = "0.8.2", features = ["http2", "ws"] }
+axum-extra = { version = "0.11.0", features = ["typed-header"] }
+serde = { version = "1.0.217", features = ["derive"] }
+sqlx = { version = "0.8.3", features = [
     "runtime-tokio",
     "tls-rustls",
     "chrono",
     "macros",
     "postgres",
 ] }
-aws-config = { version = "1.5.13", features = ["behavior-version-latest"] }
-aws-sdk-s3 = "1.68.0"
-chrono = "0.4.38"
-uuid = { version = "1.10.0", features = ["v4"] }
+aws-config = { version = "1.5.14", features = ["behavior-version-latest"] }
+aws-sdk-s3 = "1.70.0"
+chrono = "0.4.39"
+uuid = { version = "1.12.1", features = ["v4"] }
 jsonwebtoken = "9.3.0"
-lettre = "0.11.9"
+lettre = "0.11.11"
 rand = "0.8.5"
-blake3 = "1.5.4"
+blake3 = "1.5.5"
 email_address = "0.2.9"
 hyper = "1.5.2"
 http-body-util = "0.1.2"
-tracing = "0.1.40"
-tracing-subscriber = "0.3.18"
+tracing = "0.1.41"
+tracing-subscriber = "0.3.19"
 axum-macros = "0.5.0"
